@@ -1,0 +1,35 @@
+# Mode: Standalone is the best choice for your K3d single-node experiment
+mode: standalone
+
+replicas: 1
+
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  size: 2Gi
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  # It is professional practice to always define limits as well
+  limits:
+    memory: 512Mi
+    cpu: 250m
+
+existingSecret: "minio-credentials"
+
+# Authentication
+# Pro-tip: For a production-ready environment, these should be 
+# injected via Kubernetes Secrets rather than plain text in a values file.
+#accessKey: admin
+#secretKey: password
+
+# Professional configuration for observability storage
+buckets:
+  - name: loki-data
+    policy: none
+    purge: false
+  - name: tempo-data
+    policy: none
+    purge: false

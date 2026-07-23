@@ -1,0 +1,66 @@
+# Tempo Single Binary mode is perfect for your local K3d environment
+# mode is not present in the official Tempo Helm chart, but it is a valid configuration option for the Tempo binary itself.
+mode: singleBinary
+
+tempo:
+  # OTLP Ingestors are enabled by default, which matches your Alloy config
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+
+  # Standardize these names so the internal Go SDK auto-detects them
+  extraEnv:
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: rootUser
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: rootPassword
+
+  storage:
+    trace:
+      backend: s3
+      s3:
+        endpoint: minio.monitoring.svc.cluster.local:9000
+        bucket: tempo-data
+        #access_key: $MINIO_ACCESS_KEY
+        #secret_key: $MINIO_SECRET_KEY
+        insecure: true
+        # Essential for MinIO/S3-compatible backends
+        # failed parsing config: failed to parse configFile /conf/tempo.yaml: yaml: unmarshal errors:
+        #  line 42: field s3ForcePathStyle not found in type s3.Config
+        #s3ForcePathStyle: true
+        # Corrected to lowercase for Tempo's config schema
+        forcepathstyle: true
+
+
+# Professional configuration for data retention and organization
+  ingester:
+    max_block_duration: 5m
+
+# Ensure persistence matches your 1Gi local-path architecture pattern
+singleBinary:
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClassName: local-path
+  extraEnv:
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: rootUser
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: rootPassword

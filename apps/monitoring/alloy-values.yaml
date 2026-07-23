@@ -1,0 +1,58 @@
+alloy:
+  # CRITICAL: This opens the network ports on the Kubernetes Service level 
+  # so that your demo microservices can reach the Alloy listener engine.
+  extraPorts:
+    - name: "otlp-grpc"
+      port: 4317
+      targetPort: 4317
+      protocol: "TCP"
+    - name: "otlp-http"
+      port: 4318
+      targetPort: 4318
+      protocol: "TCP"
+
+  configMap:
+    create: true
+    content: |
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          logs    = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      otelcol.processor.batch "default" {
+        send_batch_size     = 1000
+        timeout             = "15s" 
+        send_batch_max_size = 1500
+
+        output {
+          logs    = [otelcol.exporter.loki.to_loki.input]
+          traces  = [otelcol.exporter.otlp.to_tempo.input]
+        }
+      }
+
+      otelcol.exporter.loki "to_loki" {
+        forward_to = [loki.write.endpoint.receiver]
+      }
+
+      loki.write "endpoint" {
+        endpoint {
+          url = "http://loki-headless.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+        }
+      }
+
+      otelcol.exporter.otlp "to_tempo" {
+        client {
+          endpoint = "tempo.monitoring.svc.cluster.local:4317"
+          tls {
+            insecure = true
+          }
+        }
+      }
