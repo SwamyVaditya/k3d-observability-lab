@@ -1,0 +1,22 @@
+# Operating System files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Local Kubernetes & Helm artifacts
+.kube/
+*.tgz
+charts/
+tmp/
+*.lock
+
+# Local IDE and environment configurations
+.vscode/
+.idea/
+*.env
+*.log
+
+# Local secrets or credentials files (Crucial Security Best Practice)
+secrets.yaml
+*-secret.yaml
