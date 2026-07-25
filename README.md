@@ -106,19 +106,6 @@ argocd app list
 
 1. Modify any application Helm values file under `apps/monitoring/`.
 2. Commit and push your changes to your remote GitHub repository (`main` branch).
-3. Argo CD automatically detects the drift via its automated sync policy (`prune: true`, `selfHeal: true`) and rolls out the changes live into your local K3d cluster without manual `helm upgrade` commands.
-
-
-
-
-
-
-## Architecture Overview
-This project implements a fully automated observability stack mimicking enterprise cloud-native environments:
-* **Log Aggregation:** Grafana Loki (Single-Binary mode) backed by MinIO object storage.
-* **Distributed Tracing:** Grafana Tempo integrated with OTLP backends.
-* **Telemetry Collection:** Grafana Alloy acting as a high-performance OpenTelemetry collector.
-* **Metrics & Storage:** Prometheus remote-write capabilities combined with MinIO S3-compatible object storage.
-* **GitOps Continuous Deployment:** Argo CD continuously synchronizing cluster state from this repository.
-* **CI Validation:** GitHub Actions validating syntax, linting, and security policies on every push.
+3. Argo CD automatically detects the drift via its automated sync policy (`prune: true`, `selfHeal: true`) and 
+   rolls out the changes live into your local K3d cluster without manual `helm upgrade` commands.
 
