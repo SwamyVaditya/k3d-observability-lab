@@ -20,3 +20,9 @@ tmp/
 # Local secrets or credentials files (Crucial Security Best Practice)
 secrets.yaml
 *-secret.yaml
+
+# Terraform local state and lock files
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
