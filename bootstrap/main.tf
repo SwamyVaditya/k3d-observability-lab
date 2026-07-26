@@ -33,6 +33,22 @@ provider "helm" {
 }
 
 
+# Automatically add and update required Helm repositories before deploying charts
+resource "null_resource" "helm_repositories" {
+  provisioner "local-exec" {
+    command = <<-EOT
+      helm repo add argo https://argoproj.github.io/argo-helm
+      helm repo add grafana https://grafana.github.io/helm-charts
+      helm repo add minio https://charts.min.io
+      helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+      helm repo update
+    EOT
+  }
+
+  depends_on = [null_resource.k3d_cluster]
+}
+
+# Argo CD Helm Release configured to wait for repository initialization
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
@@ -53,10 +69,8 @@ resource "helm_release" "argocd" {
     EOT
   ]
 
-  depends_on = [null_resource.k3d_cluster]
+  depends_on = [null_resource.helm_repositories]
 }
-
-
 
 
 # 3. Apply the Root GitOps Application
