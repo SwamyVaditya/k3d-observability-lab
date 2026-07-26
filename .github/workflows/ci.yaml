@@ -1,0 +1,41 @@
+name: CI Validation Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate-charts:
+    name: Lint and Validate Helm Charts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: latest
+
+      - name: Lint MinIO Chart Values
+        run: |
+          helm repo add minio https://charts.min.io/
+          helm repo update
+          helm template minio minio/minio -f apps/monitoring/minio-values.yaml --dry-run
+
+      - name: Lint Loki Chart Values
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo update
+          helm template loki grafana/loki -f apps/monitoring/loki-values.yaml --dry-run
+
+      - name: Lint Tempo Chart Values
+        run: |
+          helm template tempo grafana/tempo -f apps/monitoring/tempo-values.yaml --dry-run
+
+      - name: Lint Alloy Chart Values
+        run: |
+          helm template alloy grafana/alloy -f apps/monitoring/alloy-values.yaml --dry-run
