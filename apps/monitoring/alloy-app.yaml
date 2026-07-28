@@ -7,13 +7,20 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
-  source:
-    chart: alloy
-    repoURL: https://grafana.github.io/helm-charts
-    targetRevision: 0.9.0
-    helm:
-      valueFiles:
-        - alloy-values.yaml
+  sources:
+    # Source 1: The remote Grafana Alloy Helm chart repository
+    - chart: alloy
+      repoURL: https://grafana.github.io/helm-charts
+      targetRevision: 0.9.0
+      helm:
+        valueFiles:
+          - $GitRepo/apps/monitoring/alloy-values.yaml
+    
+    # Source 2: Your Git repository containing the custom values file
+    - repoURL: https://github.com/swamyvaditya/k3d-observability-lab.git
+      targetRevision: main
+      ref: GitRepo
+
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

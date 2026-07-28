@@ -19,8 +19,8 @@ components:
   llm: { enabled: false }
   recommendation: { enabled: false }
 
-  #load-generator: 
-  #  enabled: true   
+  load-generator: 
+    enabled: false   
   #  resources:
   #    limits:
   #      memory: 256Mi

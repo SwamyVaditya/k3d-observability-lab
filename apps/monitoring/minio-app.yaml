@@ -7,13 +7,20 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
-  source:
-    chart: minio
-    repoURL: https://charts.min.io
-    targetRevision: 5.3.0
-    helm:
-      valueFiles:
-        - minio-values.yaml
+  sources:
+    # Source 1: The remote MinIO Helm chart repository
+    - chart: minio
+      repoURL: https://charts.min.io
+      targetRevision: 5.4.0
+      helm:
+        valueFiles:
+          - $GitRepo/apps/monitoring/minio-values.yaml
+
+    # Source 2: Your Git repository containing the custom values file
+    - repoURL: https://github.com/swamyvaditya/k3d-observability-lab.git
+      targetRevision: main
+      ref: GitRepo
+  
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
