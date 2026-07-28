@@ -22,16 +22,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Add Helm Repositories
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add minio https://charts.min.io
+          helm repo update
       - name: Lint MinIO Chart Values
         run: |
-          helm repo add minio https://charts.min.io/
-          helm repo update
           helm template minio minio/minio -f apps/monitoring/minio-values.yaml --dry-run
 
       - name: Lint Loki Chart Values
         run: |
-          helm repo add grafana https://grafana.github.io/helm-charts
-          helm repo update
           helm template loki grafana/loki -f apps/monitoring/loki-values.yaml --dry-run
 
       - name: Lint Tempo Chart Values
@@ -41,3 +44,19 @@ jobs:
       - name: Lint Alloy Chart Values
         run: |
           helm template alloy grafana/alloy -f apps/monitoring/alloy-values.yaml --dry-run
+      - name: Lint Prometheus / kube-prometheus-stack
+        run: |
+            helm template test-prom prometheus-community/kube-prometheus-stack -n monitoring -f apps/monitoring/prometheus-grafana-values.yaml > /dev/null
+
+      - name: Lint OpenTelemetry Demo
+        run: |
+          helm template test-otel open-telemetry/opentelemetry-demo -n monitoring -f apps/monitoring/demo-values.yaml > /dev/null
+      
+      # This automatically generates or updates minio-secret.yaml
+      - name: Create MinIO Secret dynamically
+        run: |
+          kubectl create secret generic minio-credentials \
+            -n monitoring \
+            --from-literal=rootUser=${{ secrets.MINIO_USER }} \
+            --from-literal=rootPassword=${{ secrets.MINIO_PASSWORD }} \
+            --dry-run=client -o yaml > apps/monitoring/minio-secret.yaml

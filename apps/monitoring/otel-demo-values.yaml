@@ -1,0 +1,57 @@
+# --- ROOT LEVEL SUB-CHARTS ---
+# These are independent apps bundled with the demo. 
+# Disabling these saves ~3GB of RAM.
+opentelemetry-collector: { enabled: false }
+opensearch: { enabled: false }
+prometheus: { enabled: false }
+grafana: { enabled: false }
+jaeger: { enabled: false }
+# kafka: { enabled: false }
+
+# --- COMPONENTS (MICROSERVICES) ---
+# We keep only the bare essentials to see the shop.
+components:
+  accounting: { enabled: false }
+  ad: { enabled: false }
+  #fraud-detection: { enabled: false }
+  # image-provider: { enabled: false }
+  kafka: { enabled: false }
+  llm: { enabled: false }
+  recommendation: { enabled: false }
+
+  #load-generator: 
+  #  enabled: true   
+  #  resources:
+  #    limits:
+  #      memory: 256Mi
+  
+  #cart:
+  #  env:
+  #    - name: FAILURE_INJECTION_ENABLED
+  #      value: "true"
+  #    - name: FAILURE_INJECTION_LATENCY_MS
+  #      value: "1500" # Forces a massive 1.5-second processing delay
+  #    - name: FAILURE_INJECTION_ERROR_RATE
+  #      value: "0.3"  # Causes 30% of all cart requests to throw a fatal unhandled code error  
+
+  # These fix the 'Init' issue while keeping the pods running
+  checkout:
+    initContainers: [] # This removes the 'wait-for-kafka' initContainer entirely
+  fraud-detection: 
+    enabled: false
+    initContainers: []
+
+# --- GLOBAL CONFIG ---
+default:
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: "otel-demo"
+    # TRICK THE CHART: The chart automatically appends ':4317' to this variable.
+    # By providing the FQDN here, it stitches together perfectly without variable collisions.
+    - name: OTEL_COLLECTOR_NAME
+      value: "alloy.monitoring.svc.cluster.local" # Fixes the Nginx $(OTEL_COLLECTOR_NAME) error
+    - name: WAIT_FOR_KAFKA
+      value: "false"
+    - name: WAIT_FOR_OPENSEARCH
+      value: "false"
+    

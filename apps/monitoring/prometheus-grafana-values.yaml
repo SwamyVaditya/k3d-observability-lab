@@ -1,0 +1,56 @@
+prometheus:
+  prometheusSpec:
+    # This is the fix for the "Connection Refused" from Alloy
+    enableRemoteWriteReceiver: true 
+    resources:
+      requests:
+        memory: "256Mi"
+      limits:
+        memory: "512Mi"
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: "1Gi"
+
+grafana:
+  adminPassword: admin
+  # Explicitly setting the default datasource to prevent the "Multiple Defaults" crash
+  sidecar:
+    datasources:
+      enabled: true
+      defaultDatasourceEnabled: false # Change this to false
+      label: grafana_datasource
+      labelValue: "1"
+  resources:
+    requests:
+      memory: "256Mi"
+    limits:
+      memory: "512Mi"
+
+# Disable Alertmanager to save another ~200MB of RAM
+alertmanager:
+  enabled: false
+
+  alertmanagerSpec:
+    resources:
+      requests:
+        memory: "256Mi"
+      limits:
+        memory: "512Mi"
+
+
+
+
+
+# Tighten these up for your 8GB machine
+prometheus-node-exporter:
+  resources:
+    limits:
+      memory: "100Mi"
+kube-state-metrics:
+  resources:
+    limits:
+      memory: "100Mi"
