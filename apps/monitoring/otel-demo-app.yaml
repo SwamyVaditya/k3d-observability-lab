@@ -11,9 +11,10 @@ spec:
     chart: opentelemetry-demo
     repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
     targetRevision: 0.40.10
+    path: apps/monitoring
     helm:
       valueFiles:
-        - apps/monitoring/otel-demo-values.yaml
+        - otel-demo-values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
