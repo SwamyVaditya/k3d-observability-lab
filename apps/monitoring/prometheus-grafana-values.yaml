@@ -34,16 +34,11 @@ grafana:
 alertmanager:
   enabled: false
 
-#  alertmanagerSpec:
-#    resources:
-#      requests:
-#        memory: "256Mi"
-#      limits:
-#        memory: "512Mi"
 
-
-
-
+# Disable Admission Webhooks - Recommended for Local Labs
+prometheusOperator:
+  admissionWebhooks:
+    enabled: false
 
 # Tighten these up for your 8GB machine
 prometheus-node-exporter:
