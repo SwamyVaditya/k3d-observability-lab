@@ -14,7 +14,7 @@ spec:
       targetRevision: 58.2.2
       helm:
         valueFiles:
-        - prometheus-grafana-values.yaml
+        - $GitRepo/apps/monitoring/prometheus-grafana-values.yaml
     
     # Source 2: Your Git repository containing the custom values file
     - repoURL: https://github.com/swamyvaditya/k3d-observability-lab.git
