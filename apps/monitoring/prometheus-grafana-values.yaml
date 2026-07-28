@@ -36,9 +36,9 @@ alertmanager:
 
 
 # Disable Admission Webhooks - Recommended for Local Labs
-prometheusOperator:
-  admissionWebhooks:
-    enabled: false
+#prometheusOperator:
+#  admissionWebhooks:
+#    enabled: false
 
 # Tighten these up for your 8GB machine
 prometheus-node-exporter:
