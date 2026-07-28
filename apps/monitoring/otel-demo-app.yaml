@@ -10,7 +10,7 @@ spec:
   source:
     chart: opentelemetry-demo
     repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-    targetRevision: 0.28.0
+    targetRevision: 0.40.10
     helm:
       valueFiles:
         - apps/monitoring/otel-demo-values.yaml
