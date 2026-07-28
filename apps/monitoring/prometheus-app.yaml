@@ -7,16 +7,24 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
-  source:
-    chart: kube-prometheus-stack
-    repoURL: https://prometheus-community.github.io/helm-charts
-    targetRevision: 58.2.2
-    helm:
-      valueFiles:
+  sources:
+    # Source 1: The remote Prometheus Helm chart repository
+    - chart: kube-prometheus-stack
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: 58.2.2
+      helm:
+        valueFiles:
         - prometheus-grafana-values.yaml
+    
+    # Source 2: Your Git repository containing the custom values file
+    - repoURL: https://github.com/swamyvaditya/k3d-observability-lab.git
+      targetRevision: main
+      ref: GitRepo
+  
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
+  
   syncPolicy:
     automated:
       prune: true
