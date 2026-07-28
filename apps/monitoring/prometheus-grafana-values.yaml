@@ -34,12 +34,12 @@ grafana:
 alertmanager:
   enabled: false
 
-  alertmanagerSpec:
-    resources:
-      requests:
-        memory: "256Mi"
-      limits:
-        memory: "512Mi"
+#  alertmanagerSpec:
+#    resources:
+#      requests:
+#        memory: "256Mi"
+#      limits:
+#        memory: "512Mi"
 
 
 
