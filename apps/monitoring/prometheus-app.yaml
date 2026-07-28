@@ -11,7 +11,7 @@ spec:
     # Source 1: The remote Prometheus Helm chart repository
     - chart: kube-prometheus-stack
       repoURL: https://prometheus-community.github.io/helm-charts
-      targetRevision: 58.2.2
+      targetRevision: 87.21.0
       helm:
         valueFiles:
         - $GitRepo/apps/monitoring/prometheus-grafana-values.yaml
