@@ -18,11 +18,21 @@ tmp/
 *.log
 
 # Local secrets or credentials files (Crucial Security Best Practice)
-secrets.yaml
-*-secret.yaml
+# secrets.yaml
+# *-secret.yaml
+
+# Ignore plaintext local secrets completely
+minio-secret.yaml
+*-local-secret.yaml
+
+# Keep sealed secrets tracked in Git
+!minio-sealed-secret.yaml
 
 # Terraform local state and lock files
 .terraform/
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+
+
+minio-secret.yaml

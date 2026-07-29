@@ -41,6 +41,7 @@ resource "null_resource" "helm_repositories" {
       helm repo add grafana https://grafana.github.io/helm-charts
       helm repo add minio https://charts.min.io
       helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+      helm repo add sealed-secrets https://bitnami.github.io/sealed-secrets
       helm repo update
     EOT
   }
@@ -82,4 +83,14 @@ provider "kubectl" {
 resource "kubectl_manifest" "root_app" {
   yaml_body  = file("${path.module}/../argocd/root-app.yaml")
   depends_on = [helm_release.argocd]
+}
+
+# 4. Deploy Sealed Secrets Controller using Helm
+resource "helm_release" "sealed_secrets" {
+  name             = "sealed-secrets"
+  repository       = "https://bitnami.github.io/sealed-secrets"
+  chart            = "sealed-secrets"
+  version          = "2.16.1" # Use a stable compatible chart version
+  namespace        = "kube-system"
+  create_namespace = false
 }
