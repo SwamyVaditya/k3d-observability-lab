@@ -34,3 +34,9 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
       - Replace=true
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas # Example if replica counts are being modified externally
