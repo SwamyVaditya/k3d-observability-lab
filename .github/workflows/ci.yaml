@@ -53,10 +53,10 @@ jobs:
           helm template test-otel open-telemetry/opentelemetry-demo -n monitoring -f apps/monitoring/otel-demo-values.yaml > /dev/null
       
       # This automatically generates or updates minio-secret.yaml
-      - name: Create MinIO Secret dynamically
-        run: |
-          kubectl create secret generic minio-credentials \
-            -n monitoring \
-            --from-literal=rootUser=${{ secrets.MINIO_USER }} \
-            --from-literal=rootPassword=${{ secrets.MINIO_PASSWORD }} \
-            --dry-run=client -o yaml > apps/monitoring/minio-secret.yaml
+      #- name: Create MinIO Secret dynamically
+      #  run: |
+      #    kubectl create secret generic minio-credentials \
+      #      -n monitoring \
+      #      --from-literal=rootUser=${{ secrets.MINIO_USER }} \
+      #      --from-literal=rootPassword=${{ secrets.MINIO_PASSWORD }} \
+      #      --dry-run=client -o yaml > apps/monitoring/minio-secret.yaml
