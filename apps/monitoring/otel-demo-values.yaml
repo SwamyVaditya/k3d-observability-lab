@@ -16,7 +16,7 @@ components:
   #fraud-detection: { enabled: false }
   # image-provider: { enabled: false }
   kafka: { enabled: false }
-  llm: { enabled: false }
+  # llm: { enabled: false }
   recommendation: { enabled: false }
 
   load-generator: 
@@ -42,4 +42,3 @@ default:
       value: "false"
     - name: WAIT_FOR_OPENSEARCH
       value: "false"
-      
