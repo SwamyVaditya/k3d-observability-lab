@@ -7,23 +7,23 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
-  sources:
-    # Source 1: The remote Grafana Loki Helm chart repository
-    - chart: loki
-      repoURL: https://grafana.github.io/helm-charts
-      targetRevision: 5.43.0
-      helm:
-        valueFiles:
-          - $GitRepo/apps/monitoring/loki-values.yaml
-  
-  # Source 2: Your Git repository containing the custom values file
-    - repoURL: https://github.com/swamyvaditya/k3d-observability-lab.git
-      targetRevision: main
-      ref: GitRepo
-  
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
+  sources:
+    # Source 1: The Loki / Grafana helm chart
+    - chart: loki-stack # or your specific loki chart name/repo
+      repoURL: https://grafana.github.io/helm-charts
+      targetRevision: 2.10.2 # Use a stable version compatible with your setup
+      helm:
+        valueFiles:
+          - $GitRepo/apps/monitoring/loki-values.yaml
+          
+    # Source 2: Your Git repository reference
+    - repoURL: https://github.com/swamyvaditya/k3d-observability-lab.git
+      targetRevision: main
+      ref: GitRepo
+      
   syncPolicy:
     automated:
       prune: true
