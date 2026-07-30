@@ -20,19 +20,7 @@ components:
   recommendation: { enabled: false }
 
   load-generator: 
-    enabled: false   
-  #  resources:
-  #    limits:
-  #      memory: 256Mi
-  
-  #cart:
-  #  env:
-  #    - name: FAILURE_INJECTION_ENABLED
-  #      value: "true"
-  #    - name: FAILURE_INJECTION_LATENCY_MS
-  #      value: "1500" # Forces a massive 1.5-second processing delay
-  #    - name: FAILURE_INJECTION_ERROR_RATE
-  #      value: "0.3"  # Causes 30% of all cart requests to throw a fatal unhandled code error  
+    enabled: false
 
   # These fix the 'Init' issue while keeping the pods running
   checkout:
@@ -54,4 +42,4 @@ default:
       value: "false"
     - name: WAIT_FOR_OPENSEARCH
       value: "false"
-    
+      
