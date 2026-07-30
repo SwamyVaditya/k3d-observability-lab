@@ -51,5 +51,3 @@ jobs:
       - name: Lint OpenTelemetry Demo
         run: |
           helm template test-otel open-telemetry/opentelemetry-demo -n monitoring -f apps/monitoring/otel-demo-values.yaml > /dev/null
-      
-      
