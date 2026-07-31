@@ -4,33 +4,33 @@ metadata:
   name: observability-cluster
 servers: 1
 agents: 2
+image: rancher/k3s:v1.29.6-k3s1 # Pin it, don't use latest
 
 # Expose Kubernetes API on localhost:6443
 kubeAPI:
+  hostIP: "0.0.0.0"
   hostPort: "6443"
 
 volumes:
-  - volume: k3d-observability-data:/var/lib/rancher/k3s/storage
-    nodeFilters:
-      - all
+  - volume: k3d-observability-data:/var/lib/rancher/k3s/storage@all
 
 # Map HTTP and HTTPS for Ingress (Argo CD, sample apps, etc.)
 ports:
-  - port: 80:80    # HTTP
+  - port: 80:80
     nodeFilters:
       - loadbalancer
-  - port: 443:443  # HTTPS
+  - port: 443:443
     nodeFilters:
       - loadbalancer
 
-# Optional: make localhost aliases for ingress domains like argo.localdev.me
+
 options:
   k3d:
     wait: true
-    timeout: "60s"
+    timeout: "300s" # was 120s - too low for Windows
   k3s:
     extraArgs:
-      - arg: "--disable=traefik"
+      - arg: --disable=traefik
         nodeFilters:
           - server:*
   kubeconfig:
