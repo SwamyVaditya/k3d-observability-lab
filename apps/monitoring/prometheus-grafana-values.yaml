@@ -15,6 +15,16 @@ prometheus:
             requests:
               storage: "1Gi"
 
+# In apps/monitoring/prometheus-app.yaml sources[0].helm.valueFiles override OR inline:
+
+# prometheus-grafana-values.yaml - ADD THIS:
+prometheusOperator:
+  admissionWebhooks:
+    enabled: false
+  tls:
+    enabled: false
+  
+
 grafana:
   adminPassword: admin
   # Explicitly setting the default datasource to prevent the "Multiple Defaults" crash
