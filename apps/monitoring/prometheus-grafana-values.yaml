@@ -17,7 +17,7 @@ prometheus:
 
 # In apps/monitoring/prometheus-app.yaml sources[0].helm.valueFiles override OR inline:
 
-# prometheus-grafana-values.yaml - ADD THIS:
+# disabled for local k3d to save RAM and avoid bootstrap race - enable in prod. 
 prometheusOperator:
   admissionWebhooks:
     enabled: false

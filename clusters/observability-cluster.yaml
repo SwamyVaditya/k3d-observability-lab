@@ -30,9 +30,10 @@ options:
     timeout: "300s" # was 120s - too low for Windows
   k3s:
     extraArgs:
-      - arg: --disable=traefik
-        nodeFilters:
-          - server:*
+#      - arg: --disable=traefik
+       - arg: --disable=metrics-server
+         nodeFilters:
+           - server:*
   kubeconfig:
     updateDefaultKubeconfig: true
     switchCurrentContext: true
