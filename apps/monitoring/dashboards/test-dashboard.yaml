@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "SRE"
+data:
+  test-dashboard.json: |-
+    {
+      "title": "Phase-1 Test - Sidecar Works",
+      "uid": "phase1-test",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Phase 1 Status",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "up",
+              "datasource": { "type": "prometheus", "uid": "prometheus" }
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "steps": [
+                  { "color": "red", "value": 0 },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Cluster CPU",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total))",
+              "datasource": { "type": "prometheus", "uid": "prometheus" }
+            }
+          ]
+        }
+      ]
+    }

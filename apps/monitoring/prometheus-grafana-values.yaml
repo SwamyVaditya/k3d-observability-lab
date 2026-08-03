@@ -34,15 +34,31 @@ grafana:
       defaultDatasourceEnabled: false # Change this to false
       label: grafana_datasource
       labelValue: "1"
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      folderAnnotation: grafana_folder
+      searchNamespace: monitoring
+  # auto-create datasources
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki-gateway.monitoring.svc.cluster.local
+    - name: Tempo
+      type: tempo
+      url: http://tempo.monitoring.svc.cluster.local:3200
+
   resources:
     requests:
       memory: "256Mi"
     limits:
       memory: "512Mi"
 
+    
+
 # Disable Alertmanager to save another ~200MB of RAM
 alertmanager:
-  enabled: false
+  enabled: true
 
 
 # Disable Admission Webhooks - Recommended for Local Labs
