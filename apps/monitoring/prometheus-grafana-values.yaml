@@ -37,8 +37,24 @@ grafana:
     dashboards:
       enabled: true
       label: grafana_dashboard
+      labelValue: "1"
       folderAnnotation: grafana_folder
       searchNamespace: monitoring
+      provider:
+        foldersFromFilesStructure: true
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'sidecarProvider'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          allowUiUpdates: true
+          options:
+            path: /tmp/dashboards
+            foldersFromFilesStructure: true
   # auto-create datasources
   additionalDataSources:
     - name: Loki
