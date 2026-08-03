@@ -31,15 +31,26 @@ spec:
               port: { number: 9001 }
   
   # This is the Loki ingress, which is used to route traffic to the Loki service.
-  - host: loki-gateway.local
+  - host: loki.local
     http:
       paths:
         - path: /
           pathType: Prefix
           backend:
             service:
-              name: loki-gateway
-              port: { number: 80 }
+              name: loki
+              port: { number: 3100 }
+
+# This is the Tempo ingress, which is used to route traffic to the Tempo service.
+  - host: tempo.local
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: tempo
+              port: { number: 3100 }
 
   # This is the frontend-proxy ingress, which is used to route traffic to the frontend-proxy service. 
   # The frontend-proxy service is a reverse proxy that routes traffic to the appropriate backend service based on the request path.  
