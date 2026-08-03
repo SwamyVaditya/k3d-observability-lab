@@ -1,7 +1,7 @@
 deploymentMode: SingleBinary
 
 singleBinary:
-  # replicas: 1
+  replicas: 1
   # This is the correct block for persistence in modern Loki charts
   persistence:
     enabled: true
@@ -20,44 +20,13 @@ singleBinary:
           name: minio-credentials
           key: rootPassword
 
+
+# --- New loki chart 6.x format ---
 loki:
-#  extraArgs:
-#    - "-config.expand-env=true"
-  
   auth_enabled: false
   commonConfig:
     replication_factor: 1
-    path_prefix: /var/loki
-
-  # -------------------------------------------------------------
-  # FLUSH TUNING: Forces data into MinIO quickly for lab validation
-  # -------------------------------------------------------------
-  
-  # failed parsing config: /etc/loki/config/config.yaml: yaml: unmarshal errors:
-  # line 34: field max_chunk_age not found in type validation.plain. Use `-config.expand-env=true` flag if you want to expand environment variables in your config file
-  #limits_config:
-  #  max_chunk_age: 1m         # Cut memory chunks when they hit 1 minute old
-
-  ingester:
-    flush_check_period: 15s   # Check for flushable data every 15 seconds
-    chunk_idle_period: 1m     # Flush streams that haven't received logs for 1 minute
-    chunk_retain_period: 30s  # Keep chunks in RAM for 30s after flushing for faster read access
-
-
-  storage:
-    type: s3
-    s3:
-      endpoint: minio.monitoring.svc.cluster.local:9000
-      #accessKeyId: "${AWS_ACCESS_KEY_ID}"
-      #secretAccessKey: "${AWS_SECRET_ACCESS_KEY}"
-      #accessKeyId: minio1
-      #secretAccessKey: minio@1234
-      s3ForcePathStyle: true
-      insecure: true
-    bucketNames:
-      chunks: loki-data
-      ruler: loki-data
-      admin: loki-data
+  #  path_prefix: /var/loki
   schemaConfig:
     configs:
       - from: "2024-04-01"
@@ -67,27 +36,48 @@ loki:
         index:
           prefix: loki_index_
           period: 24h
-#  persistence:
-#    enabled: true
-#    size: 1Gi
-    # Ensure this matches your K3d local-path provisioner
-#    storageClassName: local-path 
-  resources:
-    requests:
-      memory: 256Mi
-    limits:
-      memory: 1Gi
-  memcached:
-    chunksCache:
-      enabled: false
-    indexQueriesCache:
-      enabled: false
-    resultsCache:
-      enabled: false
+  storage:
+    type: s3
+    bucketNames:
+      chunks: loki-data
+      ruler: loki-data
+      admin: loki-data
+    s3:
+      endpoint: minio.monitoring.svc.cluster.local:9000
+      s3ForcePathStyle: true
+      insecure: true
+  ingester:
+    #flush_check_period: 15s   # Check for flushable data every 15 seconds
+    chunk_idle_period: 1m
+    chunk_retain_period: 30s
+  limits_config:
+    # fix your earlier error - this goes here in new chart
+    allow_structured_metadata: true
+
+  #resources:
+  #  requests:
+  #    memory: 256Mi
+  #  limits:
+  #    memory: 1Gi
+
+# Disable components that create unwanted datasources
+gateway:
+  enabled: false # we use direct loki:3100, not gateway
+test:
+  enabled: false
+monitoring:
+  selfMonitoring:
+    grafanaAgent:
+      installOperator: false
+lokiCanary:
+  enabled: false
 
 # Disabling unnecessary cache components
+# No memcached for k3d
+memcached:
+  enabled: false
 chunksCache:
   enabled: false
 resultsCache:
   enabled: false
-
+  
