@@ -59,6 +59,14 @@ grafana:
 # Disable Alertmanager to save another ~200MB of RAM
 alertmanager:
   enabled: true
+  alertmanager:
+  enabled: true
+  config:
+    route:
+      receiver: slack
+  alertmanagerSpec:
+    resources:
+      limits: { memory: 150Mi }
 
 
 # Disable Admission Webhooks - Recommended for Local Labs
