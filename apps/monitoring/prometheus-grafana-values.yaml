@@ -58,14 +58,30 @@ grafana:
   # auto-create datasources
   additionalDataSources:
     - name: Loki
+      uid: loki
       type: loki
       url: http://loki.monitoring.svc.cluster.local:3100
       access: proxy
     - name: Tempo
+      uid: tempo
       type: tempo
       url: http://tempo.monitoring.svc.cluster.local:3100
       access: proxy
-
+      # optional but good for trace->logs correlation
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: loki
+          spanStartShift: '-1h'
+          spanEndShift: '1h'
+          filterByTraceID: true
+          filterBySpanID: false
+          customQuery: true
+          query: '{service_name=~".+"} | json | traceid="${__trace.traceId}"'
+        tracesToMetrics:
+          datasourceUid: prometheus
+        serviceMap:
+          datasourceUid: prometheus
+  
   resources:
     requests:
       memory: "256Mi"
