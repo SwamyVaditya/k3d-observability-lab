@@ -25,14 +25,14 @@ data:
           "title": "Logs Rate by Service",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "rate({service_name=~\".+\"})", "refId": "A"}]
+          "targets": [{"expr": "rate({service_name=~\".+\"}[1m])", "refId": "A"}]
         },
         {
           "type": "timeseries",
           "title": "Error Logs Rate",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "rate({level=\"ERROR\"})", "refId": "A"}]
+          "targets": [{"expr": "rate({level=\"ERROR\"}[1m])", "refId": "A"}]
         },
         {
           "type": "logs",
