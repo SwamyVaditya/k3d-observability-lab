@@ -18,8 +18,8 @@ data:
           "title": "All Service Logs (Loki)",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=~\".+\"}","refId":"A"}],
-          "options": {"showTime": true, "sortOrder": "Descending"}
+          "targets": [{"expr": "{service_name=~\".+\"}"}],
+          "options": {"showTime": true}
         },
         {
           "type": "timeseries",
@@ -33,21 +33,31 @@ data:
           "title": "Error Logs Rate",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"} |= \"error\" ))"}]
+          "targets": [
+            {"expr": "sum by (service_name) (rate({level=\"ERROR\"}))", "legendFormat": "{{service_name}} - ERROR"},
+            {"expr": "sum by (level) (rate({service_name=~\".+\"}))", "legendFormat": "level={{level}}"}
+          ]
         },
         {
           "type": "logs",
-          "title": "Cart Logs",
+          "title": "Cart Logs - service_name=cart",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
           "datasource": {"type": "loki", "uid": "loki"},
           "targets": [{"expr": "{service_name=\"cart\"}"}]
         },
         {
           "type": "logs",
-          "title": "Frontend Logs",
+          "title": "Frontend Logs - inside otel-demo",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"frontend\"}"}]
+          "targets": [{"expr": "{service_name=\"otel-demo\"} | json | instrumentation_scope_name=\"frontend\""}]
+        },
+        {
+          "type": "logs",
+          "title": "Checkout Logs (has kafka ERROR)",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 26},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "{service_name=\"otel-demo\"} | json | instrumentation_scope_name=\"checkout\""}]
         }
       ]
     }
