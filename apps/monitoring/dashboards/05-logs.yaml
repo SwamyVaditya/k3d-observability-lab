@@ -18,42 +18,42 @@ data:
           "title": "All Service Logs (Loki)",
           "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=~\".+\"}"}]
+          "targets": [{"expr": "{service_name=~\".+\"}", "refId": "A"}]
         },
         {
           "type": "timeseries",
-          "title": "Logs Rate by Service - Metric Query",
+          "title": "Logs Rate by Service",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}))", "queryType": "range"}]
+          "targets": [{"expr": "rate({service_name=~\".+\"})", "refId": "A"}]
         },
         {
           "type": "timeseries",
-          "title": "Error Logs Rate - level=ERROR",
+          "title": "Error Logs Rate",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "rate({level=\"ERROR\"})", "queryType": "range"}]
+          "targets": [{"expr": "rate({level=\"ERROR\"})", "refId": "A"}]
         },
         {
           "type": "logs",
           "title": "Cart Logs",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"cart\"}"}]
+          "targets": [{"expr": "{service_name=\"cart\"}", "refId": "A"}]
         },
         {
           "type": "logs",
-          "title": "Frontend Logs - using contains",
+          "title": "Frontend Logs",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"otel-demo\"} |= \"frontend\""}]
+          "targets": [{"expr": "{service_name=\"otel-demo\"} |= \"frontend\"", "refId": "A"}]
         },
         {
           "type": "logs",
           "title": "Checkout Logs",
           "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"otel-demo\"} |= \"checkout\""}]
+          "targets": [{"expr": "{service_name=\"otel-demo\"} |= \"checkout\"", "refId": "A"}]
         }
       ]
     }
