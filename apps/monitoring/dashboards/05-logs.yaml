@@ -16,48 +16,44 @@ data:
         {
           "type": "logs",
           "title": "All Service Logs (Loki)",
-          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=~\".+\"}"}],
-          "options": {"showTime": true}
+          "targets": [{"expr": "{service_name=~\".+\"}"}]
         },
         {
           "type": "timeseries",
-          "title": "Logs Rate by Service",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+          "title": "Logs Rate by Service - Metric Query",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}))"}]
+          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}))", "queryType": "range"}]
         },
         {
           "type": "timeseries",
-          "title": "Error Logs Rate",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+          "title": "Error Logs Rate - level=ERROR",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [
-            {"expr": "sum by (service_name) (rate({level=\"ERROR\"}))", "legendFormat": "{{service_name}} - ERROR"},
-            {"expr": "sum by (level) (rate({service_name=~\".+\"}))", "legendFormat": "level={{level}}"}
-          ]
+          "targets": [{"expr": "rate({level=\"ERROR\"})", "queryType": "range"}]
         },
         {
           "type": "logs",
-          "title": "Cart Logs - service_name=cart",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+          "title": "Cart Logs",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
           "datasource": {"type": "loki", "uid": "loki"},
           "targets": [{"expr": "{service_name=\"cart\"}"}]
         },
         {
           "type": "logs",
-          "title": "Frontend Logs - inside otel-demo",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+          "title": "Frontend Logs - using contains",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"otel-demo\"} | json | instrumentation_scope_name=\"frontend\""}]
+          "targets": [{"expr": "{service_name=\"otel-demo\"} |= \"frontend\""}]
         },
         {
           "type": "logs",
-          "title": "Checkout Logs (has kafka ERROR)",
-          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 26},
+          "title": "Checkout Logs",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"otel-demo\"} | json | instrumentation_scope_name=\"checkout\""}]
+          "targets": [{"expr": "{service_name=\"otel-demo\"} |= \"checkout\""}]
         }
       ]
     }
