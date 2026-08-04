@@ -9,7 +9,7 @@ metadata:
     grafana_folder: "SRE"
 data:
   app-red.json: |-
-{
+    {
       "title": "03 - App RED - shop.local",
       "uid": "app-red",
       "timezone": "browser",

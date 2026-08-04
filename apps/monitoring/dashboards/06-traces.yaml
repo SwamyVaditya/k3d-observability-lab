@@ -9,7 +9,7 @@ metadata:
     grafana_folder: "SRE"
 data:
   traces-tempo.json: |-
-{
+    {
       "title": "06 - Traces - Tempo + Loki",
       "uid": "traces-tempo",
       "timezone": "browser",

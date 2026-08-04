@@ -9,7 +9,7 @@ metadata:
     grafana_folder: "SRE"
 data:
   infra-cluster.json: |-
-{
+    {
       "title": "01 - Infra Cluster Overview",
       "uid": "infra-cluster",
       "timezone": "browser",

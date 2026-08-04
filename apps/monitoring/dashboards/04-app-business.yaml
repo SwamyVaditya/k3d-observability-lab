@@ -9,7 +9,7 @@ metadata:
     grafana_folder: "SRE"
 data:
   app-business.json: |-
-{
+    {
       "title": "04 - App Business KPIs",
       "uid": "app-business",
       "timezone": "browser",

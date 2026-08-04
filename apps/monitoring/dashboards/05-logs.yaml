@@ -9,7 +9,7 @@ metadata:
     grafana_folder: "SRE"
 data:
   logs-loki.json: |-
-{
+    {
       "title": "05 - Logs - Loki",
       "uid": "logs-loki",
       "timezone": "browser",
