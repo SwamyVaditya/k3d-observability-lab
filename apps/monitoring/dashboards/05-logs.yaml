@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: 05-logs
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "SRE"
+data:
+  logs-loki.json: |-
+{
+      "title": "05 - Logs - Loki",
+      "uid": "logs-loki",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "tags": [
+        "phase2",
+        "sre",
+        "golden-signals"
+      ],
+      "panels": [
+        {
+          "type": "logs",
+          "title": "All Service Logs (Loki)",
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "{namespace=\"monitoring\"} |= \"\"",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              }
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "sortOrder": "Descending"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Error Logs Rate",
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 12
+          },
+          "targets": [
+            {
+              "expr": "sum by(service)(rate({namespace=\"monitoring\"} |= \"error\" [5m]))",
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              }
+            }
+          ]
+        }
+      ]
+    }

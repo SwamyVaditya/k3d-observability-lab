@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: 01-infra-cluster
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "SRE"
+data:
+  infra-cluster.json: |-
+{
+      "title": "01 - Infra Cluster Overview",
+      "uid": "infra-cluster",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "tags": [
+        "phase2",
+        "sre",
+        "golden-signals"
+      ],
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Cluster CPU Usage",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total[5m]))*100",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              }
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Cluster Memory Usage %",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes)/sum(machine_memory_bytes)*100",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              }
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Node CPU - USE",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 4
+          },
+          "targets": [
+            {
+              "expr": "sum by(node)(rate(container_cpu_usage_seconds_total[5m]))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              }
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Node Memory - USE",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 4
+          },
+          "targets": [
+            {
+              "expr": "sum by(node)(container_memory_working_set_bytes)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              }
+            }
+          ]
+        }
+      ]
+    }
