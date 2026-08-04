@@ -15,32 +15,30 @@ data:
       "time": {"from": "now-1h", "to": "now"},
       "panels": [
         {
-          "type": "traces",
-          "title": "Tempo - otel-demo - TraceQL Search",
+          "type": "table",
+          "title": "Tempo - otel-demo - Trace Search",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "tempo", "uid": "tempo"},
           "targets": [
             {
               "refId": "A",
-              "queryType": "traceqlSearch",
+              "queryType": "search",
               "query": "{resource.service.name=\"otel-demo\"}",
-              "limit": 20,
-              "tableType": "traces"
+              "limit": 20
             }
           ]
         },
         {
-          "type": "traces",
-          "title": "Tempo - cart - TraceQL Search",
+          "type": "table",
+          "title": "Tempo - cart - Trace Search",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 10},
           "datasource": {"type": "tempo", "uid": "tempo"},
           "targets": [
             {
               "refId": "A",
-              "queryType": "traceqlSearch",
+              "queryType": "search",
               "query": "{resource.service.name=\"cart\"}",
-              "limit": 20,
-              "tableType": "traces"
+              "limit": 20
             }
           ]
         },
