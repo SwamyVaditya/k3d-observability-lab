@@ -16,31 +16,38 @@ data:
         {
           "type": "logs",
           "title": "All Service Logs (Loki)",
-          "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{namespace=\"monitoring\"}","refId":"A"}],
-          "options": {"showTime": true, "sortOrder": "Descending", "dedupStrategy": "none"}
+          "targets": [{"expr": "{service_name=~\".+\"}","refId":"A"}],
+          "options": {"showTime": true, "sortOrder": "Descending"}
         },
         {
           "type": "timeseries",
-          "title": "Error Logs Rate - by service",
-          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+          "title": "Logs Rate by Service",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "sum by (app) (rate({namespace=\"monitoring\"} |= \"error\" ))","refId":"A"}]
+          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}))"}]
+        },
+        {
+          "type": "timeseries",
+          "title": "Error Logs Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"} |= \"error\" ))"}]
         },
         {
           "type": "logs",
-          "title": "Cart Service Logs",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "title": "Cart Logs",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{app=\"cart\"}","refId":"A"}]
+          "targets": [{"expr": "{service_name=\"cart\"}"}]
         },
         {
           "type": "logs",
-          "title": "Checkout Service Logs",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "title": "Frontend Logs",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{app=\"checkout\"}","refId":"A"}]
+          "targets": [{"expr": "{service_name=\"frontend\"}"}]
         }
       ]
     }

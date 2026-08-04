@@ -15,24 +15,31 @@ data:
       "panels": [
         {
           "type": "traces",
-          "title": "Tempo - Trace Search",
+          "title": "Tempo - Trace Search - Cart",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "tempo", "uid": "tempo"},
-          "targets": [{"query": "{.service.name = \"frontend\" } | select(status)","refId":"A"}]
+          "targets": [{"query": "{resource.service.name=\"cart\"}"}]
+        },
+        {
+          "type": "traces",
+          "title": "Tempo - Trace Search - Frontend",
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 10},
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "targets": [{"query": "{resource.service.name=\"frontend\"}"}]
         },
         {
           "type": "timeseries",
-          "title": "Trace Rate by Service (from Metrics)",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+          "title": "Request Rate by Service",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum by (service) (rate(http_server_requests_seconds_count))","refId":"A"}]
+          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}))"}]
         },
         {
           "type": "logs",
-          "title": "Logs with Trace Correlation",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+          "title": "Logs with trace_id - Cart",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{namespace=\"monitoring\"} | trace_id!=\"\"","refId":"A"}]
+          "targets": [{"expr": "{service_name=\"cart\"} | json | traceid!= \"\""}]
         }
       ]
     }
