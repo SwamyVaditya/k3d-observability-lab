@@ -14,10 +14,7 @@ prometheus:
           resources:
             requests:
               storage: "1Gi"
-    # Fixes WAL corruption after hard shutdown
-    additionalArgs:
-      - name: storage.tsdb.allow-overlapping-chunks
-        value: "true"
+    
     # Optional: skip WAL replay on next start if corrupted
     # walCompression: true
 
