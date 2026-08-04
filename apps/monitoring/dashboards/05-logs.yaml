@@ -12,55 +12,35 @@ data:
     {
       "title": "05 - Logs - Loki",
       "uid": "logs-loki",
-      "timezone": "browser",
-      "schemaVersion": 39,
-      "tags": [
-        "phase2",
-        "sre",
-        "golden-signals"
-      ],
       "panels": [
         {
           "type": "logs",
           "title": "All Service Logs (Loki)",
-          "gridPos": {
-            "h": 12,
-            "w": 24,
-            "x": 0,
-            "y": 0
-          },
-          "targets": [
-            {
-              "expr": "{namespace=\"monitoring\"} |= \"\"",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              }
-            }
-          ],
-          "options": {
-            "showTime": true,
-            "sortOrder": "Descending"
-          }
+          "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "{namespace=\"monitoring\"}","refId":"A"}],
+          "options": {"showTime": true, "sortOrder": "Descending", "dedupStrategy": "none"}
         },
         {
           "type": "timeseries",
-          "title": "Error Logs Rate",
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 12
-          },
-          "targets": [
-            {
-              "expr": "sum by(service)(rate({namespace=\"monitoring\"} |= \"error\" [5m]))",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              }
-            }
-          ]
+          "title": "Error Logs Rate - by service",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "sum by (app) (rate({namespace=\"monitoring\"} |= \"error\" ))","refId":"A"}]
+        },
+        {
+          "type": "logs",
+          "title": "Cart Service Logs",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "{app=\"cart\"}","refId":"A"}]
+        },
+        {
+          "type": "logs",
+          "title": "Checkout Service Logs",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "{app=\"checkout\"}","refId":"A"}]
         }
       ]
     }

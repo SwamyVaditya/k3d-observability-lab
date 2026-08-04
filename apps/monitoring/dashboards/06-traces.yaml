@@ -12,70 +12,27 @@ data:
     {
       "title": "06 - Traces - Tempo + Loki",
       "uid": "traces-tempo",
-      "timezone": "browser",
-      "schemaVersion": 39,
-      "tags": [
-        "phase2",
-        "sre",
-        "golden-signals"
-      ],
       "panels": [
         {
           "type": "traces",
           "title": "Tempo - Trace Search",
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 0
-          },
-          "targets": [
-            {
-              "query": "{}",
-              "datasource": {
-                "type": "tempo",
-                "uid": "tempo"
-              }
-            }
-          ]
+          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "targets": [{"query": "{.service.name = \"frontend\" } | select(status)","refId":"A"}]
         },
         {
           "type": "timeseries",
-          "title": "Traces Rate by Service",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
-          "targets": [
-            {
-              "expr": "sum by(service)(rate(http_server_requests_seconds_count[5m]))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "title": "Trace Rate by Service (from Metrics)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum by (service) (rate(http_server_requests_seconds_count))","refId":"A"}]
         },
         {
           "type": "logs",
-          "title": "Correlated Logs (with trace_id)",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
-          "targets": [
-            {
-              "expr": "{namespace=\"monitoring\"} | json | trace_id != \"\"",
-              "datasource": {
-                "type": "loki",
-                "uid": "loki"
-              }
-            }
-          ]
+          "title": "Logs with Trace Correlation",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "{namespace=\"monitoring\"} | trace_id!=\"\"","refId":"A"}]
         }
       ]
     }
