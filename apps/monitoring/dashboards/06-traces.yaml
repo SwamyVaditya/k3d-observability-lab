@@ -15,31 +15,31 @@ data:
       "panels": [
         {
           "type": "traces",
-          "title": "Tempo - Trace Search - Cart",
+          "title": "Tempo - Trace Search - otel-demo (frontend/checkout in here)",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "tempo", "uid": "tempo"},
-          "targets": [{"query": "{resource.service.name=\"cart\"}"}]
+          "targets": [{"query": "{resource.service.name=\"otel-demo\"}", "refId": "A"}]
         },
         {
           "type": "traces",
-          "title": "Tempo - Trace Search - Frontend",
+          "title": "Tempo - Trace Search - Cart",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 10},
           "datasource": {"type": "tempo", "uid": "tempo"},
-          "targets": [{"query": "{resource.service.name=\"frontend\"}"}]
+          "targets": [{"query": "{resource.service.name=\"cart\"}", "refId": "A"}]
         },
         {
           "type": "timeseries",
-          "title": "Request Rate by Service",
+          "title": "Request Rate by Service - Loki",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}[5m]))", "refId": "A"}]
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "rate({service_name=~\".+\"}[1m])", "refId": "A"}]
         },
         {
           "type": "logs",
           "title": "Logs with trace_id - Cart",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"cart\"} | json | traceid!= \"\""}]
+          "targets": [{"expr": "{service_name=\"cart\"} | json | traceid!= \"\"", "refId": "A"}]
         }
       ]
     }
