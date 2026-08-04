@@ -32,7 +32,7 @@ data:
           "title": "Request Rate by Service",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}))"}]
+          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\".+\"}[5m]))", "refId": "A"}]
         },
         {
           "type": "logs",
