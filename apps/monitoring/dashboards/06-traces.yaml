@@ -15,53 +15,53 @@ data:
       "uid": "traces-tempo",
       "time": {"from": "now-1h", "to": "now"},
       "panels": [
-                {
-          "type": "table",
-          "title": "Tempo - otel-demo - TraceQL Search",
-          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
-          "datasource": {"type": "tempo", "uid": "tempo"},
-          "targets": [
-            {
-              "refId": "A",
-              "queryType": "traceqlSearch",
-              "searchType": "traceql",
-              "query": "{resource.service.name=\\\"otel-demo\\\"}",
-              "limit": 20,
-              "tableType": "traces",
-              "filters": []
-            }
-          ]
-        },
-        {
-          "type": "table",
-          "title": "Tempo - cart - TraceQL Search",
-          "gridPos": {"h": 10, "w": 24, "x": 0, "y": 10},
-          "datasource": {"type": "tempo", "uid": "tempo"},
-          "targets": [
-            {
-              "refId": "A",
-              "queryType": "traceqlSearch",
-              "searchType": "traceql",
-              "query": "{resource.service.name=\\\"cart\\\"}",
-              "limit": 20,
-              "tableType": "traces",
-              "filters": []
-            }
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Request Rate by Service",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
-          "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "rate({service_name=~\\\".+\\\"}[1m])", "refId": "A"}]
-        },
-        {
-          "type": "logs",
-          "title": "Logs with trace_id",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
-          "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\\\"cart\\\"} | json | traceid!=\\\"\\\"", "refId": "A"}]
-        }
+         {
+            "type": "table",
+            "title": "Tempo - otel-demo - TraceQL Search",
+            "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
+            "datasource": {"type": "tempo", "uid": "tempo"},
+            "targets": [
+              {
+                "refId": "A",
+                "queryType": "traceqlSearch",
+                "searchType": "traceql",
+                "query": "{resource.service.name=\\\"otel-demo\\\"}",
+                "limit": 20,
+                "tableType": "traces",
+                "filters": []
+              }
+            ]
+         },
+         {
+            "type": "table",
+            "title": "Tempo - cart - TraceQL Search",
+            "gridPos": {"h": 10, "w": 24, "x": 0, "y": 10},
+            "datasource": {"type": "tempo", "uid": "tempo"},
+            "targets": [
+              {
+                "refId": "A",
+                "queryType": "traceqlSearch",
+                "searchType": "traceql",
+                "query": "{resource.service.name=\\\"cart\\\"}",
+                "limit": 20,
+                "tableType": "traces",
+                "filters": []
+              }
+            ]
+         },
+         {
+            "type": "timeseries",
+            "title": "Request Rate by Service",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+            "datasource": {"type": "loki", "uid": "loki"},
+            "targets": [{"expr": "rate({service_name=~\".+\"}[1m])", "refId": "A"}]
+         },
+         {
+            "type": "logs",
+            "title": "Logs with trace_id",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+            "datasource": {"type": "loki", "uid": "loki"},
+            "targets": [{"expr": "{service_name=\"cart\"} | json | traceid!=\"\"", "refId": "A"}]
+         }
       ]
     }
