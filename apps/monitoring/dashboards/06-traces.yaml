@@ -16,7 +16,7 @@ data:
       "time": {"from": "now-1h", "to": "now"},
       "panels": [
                 {
-          "type": "traces",
+          "type": "table",
           "title": "Tempo - otel-demo - TraceQL Search",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "tempo", "uid": "tempo"},
@@ -33,7 +33,7 @@ data:
           ]
         },
         {
-          "type": "traces",
+          "type": "table",
           "title": "Tempo - cart - TraceQL Search",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 10},
           "datasource": {"type": "tempo", "uid": "tempo"},
