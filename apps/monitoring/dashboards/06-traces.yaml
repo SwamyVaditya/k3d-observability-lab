@@ -12,34 +12,35 @@ data:
     {
       "title": "06 - Traces - Tempo + Loki",
       "uid": "traces-tempo",
+      "time": {"from": "now-24h", "to": "now"},
       "panels": [
         {
           "type": "traces",
-          "title": "Tempo - Trace Search - otel-demo (frontend/checkout in here)",
+          "title": "Tempo - Trace Search - otel-demo",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
           "datasource": {"type": "tempo", "uid": "tempo"},
-          "targets": [{"query": "{resource.service.name=\"otel-demo\"}", "refId": "A"}]
+          "targets": [{"query": "{resource.service.name=\"otel-demo\"}", "refId": "A", "limit": 20}]
         },
         {
           "type": "traces",
           "title": "Tempo - Trace Search - Cart",
           "gridPos": {"h": 10, "w": 24, "x": 0, "y": 10},
           "datasource": {"type": "tempo", "uid": "tempo"},
-          "targets": [{"query": "{resource.service.name=\"cart\"}", "refId": "A"}]
+          "targets": [{"query": "{resource.service.name=\"cart\"}", "refId": "A", "limit": 20}]
         },
         {
           "type": "timeseries",
-          "title": "Request Rate by Service - Loki",
+          "title": "Request Rate by Service",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "rate({service_name=~\".+\"}[1m])", "refId": "A"}]
+          "targets": [{"expr": "rate({service_name=~\".+\"}[1m])"}]
         },
         {
           "type": "logs",
-          "title": "Logs with trace_id - Cart",
+          "title": "Logs with trace_id",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=\"cart\"} | json | traceid!= \"\"", "refId": "A"}]
+          "targets": [{"expr": "{service_name=\"cart\"} | json | traceid!= \"\""}]
         }
       ]
     }
