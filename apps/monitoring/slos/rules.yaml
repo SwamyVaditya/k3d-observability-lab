@@ -1,0 +1,159 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: otel-demo-slos
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  # ========== SLI Recording Rules ==========
+    - name: otel-demo.sli
+      interval: 30s
+      rules:
+    # Traffic - Requests per second
+        - record: sli:traffic:rate_5m
+          expr: sum by (service_name) (rate({service_name=~"frontend|cart|checkout"}[5m]))
+
+    # Errors - Error rate ratio
+        - record: sli:errors:ratio_rate_5m
+          expr: |
+            sum by (service_name) (rate({service_name=~"frontend|cart|checkout"} |= "error" [5m]))
+            /
+            sum by (service_name) (rate({service_name=~"frontend|cart|checkout"}[5m]))
+
+        - record: sli:errors:ratio_rate_1h
+          expr: |
+            sum by (service_name) (rate({service_name=~"frontend|cart|checkout"} |= "error" [1h]))
+            /
+            sum by (service_name) (rate({service_name=~"frontend|cart|checkout"}[1h]))
+
+        - record: sli:errors:ratio_rate_30d
+          expr: |
+            sum by (service_name) (rate({service_name=~"frontend|cart|checkout"} |= "error" [30d]))
+            /
+            sum by (service_name) (rate({service_name=~"frontend|cart|checkout"}[30d]))
+
+    # Latency - p95 from logs (since otel-demo doesn't expose histogram always)
+        - record: sli:latency:p95_5m
+          expr: |
+            quantile_over_time(0.95, {service_name=~"frontend|cart|checkout"} | json | unwrap duration | __error__="" [5m]) by (service_name)
+
+    # Saturation - CPU / Memory of otel-demo pods
+        - record: sli:saturation:cpu_5m
+          expr: |
+            sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="otel-demo"}[5m])) * 100
+
+        - record: sli:saturation:memory_usage_percent
+          expr: |
+            sum by (pod) (container_memory_working_set_bytes{namespace="otel-demo"} )
+            /
+            sum by (pod) (kube_pod_container_resource_limits{namespace="otel-demo", resource="memory"}) * 100
+
+  # ========== 4 Golden Signals Alerts ==========
+    - name: otel-demo.golden-signals
+      interval: 30s
+      rules:
+    # 1. Traffic - Drop or Spike
+        - alert: TrafficDrop
+          expr: sli:traffic:rate_5m < 0.1
+          for: 5m
+          labels:
+            severity: warning
+            signal: traffic
+          annotations:
+            summary: "Traffic dropped for {{ $labels.service_name }}"
+            description: "Rate is {{ $value }} req/s, expected > 0.1"
+
+        - alert: TrafficSpike
+          expr: sli:traffic:rate_5m > 100
+          for: 5m
+          labels:
+            severity: warning
+            signal: traffic
+          annotations:
+            summary: "Traffic spike in {{ $labels.service_name }}: {{ $value }} req/s"
+
+    # 2. Errors - High error rate
+        - alert: HighErrorRate
+          expr: sli:errors:ratio_rate_5m > 0.05
+          for: 3m
+          labels:
+            severity: critical
+            signal: errors
+          annotations:
+            summary: "High errors in {{ $labels.service_name }}: {{ $value | humanizePercentage }}"
+            runbook: "kubectl -n otel-demo logs -l app={{ $labels.service_name }} | grep -i error"
+
+    # 3. Latency - p95 > 500ms
+        - alert: HighLatency
+          expr: sli:latency:p95_5m > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            signal: latency
+          annotations:
+            summary: "High p95 latency in {{ $labels.service_name }}: {{ $value }}s"
+            description: "p95 > 500ms for 5m"
+
+    # 4. Saturation - CPU > 80% or Memory > 85%
+        - alert: HighCpuSaturation
+          expr: sli:saturation:cpu_5m > 80
+          for: 5m
+          labels:
+            severity: warning
+            signal: saturation
+          annotations:
+            summary: "High CPU saturation: {{ $labels.pod }} at {{ $value }}%"
+
+        - alert: HighMemorySaturation
+          expr: sli:saturation:memory_usage_percent > 85
+          for: 5m
+          labels:
+            severity: critical
+            signal: saturation
+          annotations:
+            summary: "High memory saturation: {{ $labels.pod }} at {{ $value }}%"
+
+    # Service down (part of errors)
+        - alert: ServiceDown
+          expr: up{namespace="otel-demo"} == 0 or absent(up{namespace="otel-demo"})
+          for: 2m
+          labels:
+            severity: critical
+            signal: errors
+          annotations:
+            summary: "Service down: {{ $labels.job }}"
+
+  # ========== SLO Burn Rate Alerts (Google SRE) ==========
+  # SLO: 99.5% availability over 30d = 0.5% error budget
+    - name: otel-demo.slo-burn-rate
+      interval: 30s
+      rules:
+    # Fast burn - 5m error rate > 14x budget (page immediately)
+        - alert: SLOBurnRateFast
+          expr: |
+            sli:errors:ratio_rate_5m > (14 * 0.005)
+            and
+            sli:errors:ratio_rate_1h > (14 * 0.005)
+          for: 2m
+          labels:
+            severity: critical
+            slo: "99.5%"
+            burn: "fast"
+          annotations:
+            summary: "FAST BURN: {{ $labels.service_name }} burning error budget 14x"
+            description: "Error budget will be exhausted in ~2h. Current burn: {{ $value }}"
+
+    # Slow burn - 1h error rate > 1x budget for 1h
+        - alert: SLOBurnRateSlow
+          expr: sli:errors:ratio_rate_1h > 0.005
+          for: 30m
+          labels:
+            severity: warning
+            slo: "99.5%"
+            burn: "slow"
+          annotations:
+            summary: "SLOW BURN: {{ $labels.service_name }} burning error budget"
+            description: "Error rate {{ $value }} exceeds 0.5% SLO for 30m"
