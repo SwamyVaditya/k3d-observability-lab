@@ -30,11 +30,11 @@ prometheusOperator:
 
 grafana:
   adminPassword: admin
-  # Explicitly setting the default datasource to prevent the "Multiple Defaults" crash
+    
   sidecar:
     datasources:
       enabled: true
-      defaultDatasourceEnabled: false # Change this to false
+      defaultDatasourceEnabled: false
       label: grafana_datasource
       labelValue: "1"
     dashboards:
@@ -45,32 +45,25 @@ grafana:
       searchNamespace: monitoring
       provider:
         foldersFromFilesStructure: true
-  dashboardProviders:
-    dashboardproviders.yaml:
-      apiVersion: 1
-      providers:
-        - name: 'sidecarProvider'
-          orgId: 1
-          folder: ''
-          type: file
-          disableDeletion: false
-          allowUiUpdates: true
-          options:
-            path: /tmp/dashboards
-            foldersFromFilesStructure: true
-  # auto-create datasources
   additionalDataSources:
+    - name: Prometheus
+      uid: prometheus
+      type: prometheus
+      url: http://prometheus-stack-kube-prom-prometheus.monitoring.svc.cluster.local:9090
+      access: proxy
+      isDefault: true  # <-- only ONE default
     - name: Loki
       uid: loki
       type: loki
       url: http://loki.monitoring.svc.cluster.local:3100
       access: proxy
+      isDefault: false
     - name: Tempo
       uid: tempo
       type: tempo
       url: http://tempo.monitoring.svc.cluster.local:3100
       access: proxy
-      # optional but good for trace->logs correlation
+      isDefault: false
       jsonData:
         tracesToLogsV2:
           datasourceUid: loki
@@ -127,14 +120,6 @@ alertmanager:
     resources:
       limits: { memory: 150Mi }
 
-#alertmanager:
-#  enabled: true
-
-
-# Disable Admission Webhooks - Recommended for Local Labs
-#prometheusOperator:
-#  admissionWebhooks:
-#    enabled: false
 
 # Tighten these up for your 8GB machine
 prometheus-node-exporter:
