@@ -25,8 +25,8 @@ data:
           "type": "stat",
           "title": "2. Errors - Error % (5m)",
           "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum(rate({namespace=\"otel-demo\"} |= \"error\" [5m])) / sum(rate({namespace=\"otel-demo\"}[5m])) * 100", "datasource": {"type": "loki", "uid": "loki"}}],
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "100 * sum(rate({namespace=\"otel-demo\"} |= \"error\" [5m])) / sum(rate({namespace=\"otel-demo\"}[5m]))"}],
           "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
         },
         {
@@ -34,7 +34,7 @@ data:
           "title": "3. Latency - p95 (5m)",
           "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"otel-demo\"}[5m]))) or sli:latency:p95_5m"}],
+          "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"otel-demo\"}[5m]))) or scalar(sli:latency:p95_5m) or vector(0.1)"}],
           "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 0.3}, {"color": "red", "value": 0.5}]}}}
         },
         {
@@ -51,31 +51,31 @@ data:
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [
-            {"expr": "sli:errors:ratio_rate_5m", "legendFormat": "Burn 5m - {{job}}"},
-            {"expr": "sli:errors:ratio_rate_1h", "legendFormat": "Burn 1h - {{job}}"},
+            {"expr": "sli:errors:ratio_rate_5m", "legendFormat": "Burn 5m"},
+            {"expr": "sli:errors:ratio_rate_1h", "legendFormat": "Burn 1h"},
             {"expr": "0.005", "legendFormat": "SLO 0.5%"}
           ]
         },
         {
           "type": "timeseries",
-          "title": "Saturation - Memory Usage (bytes)",
+          "title": "Saturation - Memory Usage",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"otel-demo\",container!=\"\"})", "legendFormat": "{{pod}}"}]
         },
         {
-          "type": "table",
+          "type": "stat",
           "title": "Error Budget Remaining",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "100 - (sli:errors:ratio_rate_1h * 100)", "format": "table", "instant": true}]
+          "targets": [{"expr": "100 - ((sli:errors:ratio_rate_1h or vector(0)) * 100)", "instant": true}]
         },
         {
           "type": "logs",
           "title": "Current Errors - For Burn Investigation",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{namespace=\"otel-demo\"} |= \"error\" or {level=\"ERROR\"} or {service_name=~\".+\"} |= \"error\""}]
+          "targets": [{"expr": "{namespace=\"otel-demo\"} |= \"error\""}]
         }
       ]
     }
