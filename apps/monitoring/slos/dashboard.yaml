@@ -12,93 +12,70 @@ data:
     {
       "title": "07 - SLOs - 4 Golden Signals + Burn Rate",
       "uid": "slos-prod",
-      "schemaVersion": 39,
       "time": {"from": "now-1h", "to": "now"},
       "panels": [
         {
-          "type": "text",
-          "title": "SLO Definition",
-          "gridPos": {"h": 3, "w": 24, "x": 0, "y": 0},
-          "options": {
-            "content": "### SLO: 99.5% Availability over 30 days | Latency p95 < 500ms | Error Budget: 0.5% | Services: frontend, cart, checkout",
-            "code": {"language": "markdown"}
-          }
-        },
-        {
           "type": "stat",
           "title": "1. Traffic - req/s (now)",
-          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 3},
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\"frontend|cart|checkout\"}[5m]))"}],
-          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green"}, {"color": "red", "value": 100}]}}}
+          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\"frontend|cart|checkout\"}[5m]))"}]
         },
         {
           "type": "stat",
           "title": "2. Errors - Error % (5m)",
-          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 3},
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sli:errors:ratio_rate_5m * 100"}],
+          "targets": [{"expr": "sum(rate({namespace=\"otel-demo\"} |= \"error\" [5m])) / sum(rate({namespace=\"otel-demo\"}[5m])) * 100", "datasource": {"type": "loki", "uid": "loki"}}],
           "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
         },
         {
           "type": "stat",
           "title": "3. Latency - p95 (5m)",
-          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 3},
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sli:latency:p95_5m"}],
+          "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"otel-demo\"}[5m]))) or sli:latency:p95_5m"}],
           "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 0.3}, {"color": "red", "value": 0.5}]}}}
         },
         {
           "type": "stat",
           "title": "4. Saturation - CPU %",
-          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 3},
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "max(sli:saturation:cpu_5m)"}],
+          "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"otel-demo\"}[5m])) * 100"}],
           "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 70}, {"color": "red", "value": 80}]}}}
         },
         {
           "type": "timeseries",
-          "title": "SLO - Error Budget Burn Rate (Fast vs Slow)",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 7},
+          "title": "SLO - Error Budget Burn Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [
-            {"expr": "sli:errors:ratio_rate_5m", "legendFormat": "Burn 5m - {{service_name}}"},
-            {"expr": "sli:errors:ratio_rate_1h", "legendFormat": "Burn 1h - {{service_name}}"},
-            {"expr": "0.005", "legendFormat": "SLO Threshold 0.5%"},
-            {"expr": "0.005 * 14", "legendFormat": "Fast Burn 14x"}
+            {"expr": "sli:errors:ratio_rate_5m", "legendFormat": "Burn 5m - {{job}}"},
+            {"expr": "sli:errors:ratio_rate_1h", "legendFormat": "Burn 1h - {{job}}"},
+            {"expr": "0.005", "legendFormat": "SLO 0.5%"}
           ]
         },
         {
           "type": "timeseries",
-          "title": "Traffic + Errors + Latency - Over Time",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 7},
-          "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [
-            {"expr": "sum by (service_name) (rate({service_name=~\"frontend|cart|checkout\"}[1m]))", "legendFormat": "Traffic - {{service_name}}"},
-            {"expr": "sum by (service_name) (rate({service_name=~\"frontend|cart|checkout\"} |= \"error\" [1m]))", "legendFormat": "Errors - {{service_name}}"}
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Saturation - Memory %",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+          "title": "Saturation - Memory Usage (bytes)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sli:saturation:memory_usage_percent", "legendFormat": "{{pod}}"}]
+          "targets": [{"expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"otel-demo\",container!=\"\"})", "legendFormat": "{{pod}}"}]
         },
         {
           "type": "table",
-          "title": "Error Budget Remaining (30d)",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+          "title": "Error Budget Remaining",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "(1 - sli:errors:ratio_rate_30d) * 100", "format": "table", "instant": true}],
-          "transformations": [{"id": "organize", "options": {"renameByName": {"Value": "Availability %", "service_name": "Service"}}}]
+          "targets": [{"expr": "100 - (sli:errors:ratio_rate_1h * 100)", "format": "table", "instant": true}]
         },
         {
           "type": "logs",
           "title": "Current Errors - For Burn Investigation",
-          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 23},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{service_name=~\"frontend|cart|checkout\"} |= \"error\""}]
+          "targets": [{"expr": "{namespace=\"otel-demo\"} |= \"error\" or {level=\"ERROR\"} or {service_name=~\".+\"} |= \"error\""}]
         }
       ]
     }
