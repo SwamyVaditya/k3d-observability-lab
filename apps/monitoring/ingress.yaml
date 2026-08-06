@@ -8,7 +8,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "3"
 spec:
   rules:
-  # This is the Grafana ingress, which is used to route traffic to the Grafana service.
+  # This is the Prometheus ingress, which is used to route traffic to the Prometheus service.
   - host: prometheus.local
     http:
       paths:
