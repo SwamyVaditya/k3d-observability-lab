@@ -1,6 +1,4 @@
 alloy:
-  # CRITICAL: This opens the network ports on the Kubernetes Service level 
-  # so that your demo microservices can reach the Alloy listener engine.
   extraPorts:
     - name: "otlp-grpc"
       port: 4317
@@ -24,6 +22,7 @@ alloy:
         output {
           logs    = [otelcol.processor.batch.default.input]
           traces  = [otelcol.processor.batch.default.input]
+          metrics = [otelcol.processor.batch.default.input]
         }
       }
 
@@ -35,6 +34,7 @@ alloy:
         output {
           logs    = [otelcol.exporter.loki.to_loki.input]
           traces  = [otelcol.exporter.otlp.to_tempo.input]
+          metrics = [otelcol.exporter.prometheus.to_prometheus.input]
         }
       }
 
@@ -54,5 +54,16 @@ alloy:
           tls {
             insecure = true
           }
+        }
+      }
+
+      // --- METRICS PIPELINE - THIS WAS MISSING ---
+      otelcol.exporter.prometheus "to_prometheus" {
+        forward_to = [prometheus.remote_write.to_prometheus.receiver]
+      }
+
+      prometheus.remote_write "to_prometheus" {
+        endpoint {
+          url = "http://prometheus-stack-kube-prom-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
         }
       }
