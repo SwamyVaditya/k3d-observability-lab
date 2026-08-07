@@ -14,6 +14,20 @@ prometheus:
           resources:
             requests:
               storage: "1Gi"
+
+    serviceMonitorSelector:
+      matchLabels:
+        release: prometheus-stack
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector:
+      matchLabels:
+        release: prometheus-stack
+    serviceMonitorNamespaceSelector:
+      matchLabels:
+        name: otel-demo
+    # OR just allow all namespaces:
+    # serviceMonitorNamespaceSelector: {}
+
     
     # Optional: skip WAL replay on next start if corrupted
     # walCompression: true

@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-demo
+  namespace: monitoring
+  labels:
+    release: prometheus-stack  # MUST match your prometheusSpec.serviceMonitorSelector
+spec:
+  namespaceSelector:
+    matchNames:
+      - otel-demo
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: otel-demo
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+    - port: http
+      path: /metrics
+      interval: 15s
+      targetPort: 8080
+    # Some otel-demo services expose on different ports, this covers all
+---
+# For services that expose metrics on 9464 (otel collector style)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-demo-collector
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - otel-demo
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otel-demo-otelcol
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
