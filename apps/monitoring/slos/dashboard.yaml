@@ -23,7 +23,7 @@ data:
         },
         {
           "type": "stat",
-          "title": "2. Errors - Error % (5m) - checkout kafka bug",
+          "title": "2. Errors - Error % (5m)",
           "gridPos": {"h":4,"w":6,"x":6,"y":0},
           "datasource": {"type":"prometheus","uid":"prometheus"},
           "targets": [{"expr": "100 * sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m])) / sum(rate(app_frontend_requests_total[5m]))"}],
@@ -39,11 +39,10 @@ data:
         },
         {
           "type": "stat",
-          "title": "4. Saturation - CPU % (otel-demo ns)",
+          "title": "4. Saturation - CPU %",
           "gridPos": {"h":4,"w":6,"x":18,"y":0},
           "datasource": {"type":"prometheus","uid":"prometheus"},
-          "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"otel-demo\",container!=\"\"}[5m])) * 100"}],
-          "fieldConfig": {"defaults":{"unit":"percent"}}
+          "targets": [{"expr": "sum(rate(process_cpu_seconds_total{job=~\".*otel.*|cart|checkout|frontend\"}[5m]))*100"}]
         },
         {
           "type": "timeseries",
@@ -61,21 +60,24 @@ data:
           "title": "Saturation - Memory Usage",
           "gridPos": {"h":8,"w":12,"x":12,"y":4},
           "datasource": {"type":"prometheus","uid":"prometheus"},
-          "targets": [{"expr": "sum by(pod)(container_memory_working_set_bytes{namespace=\"otel-demo\",container!=\"\"})","legendFormat":"{{pod}}"}]
+          "targets": [{"expr": "sum by(pod)(process_resident_memory_bytes{job=~\".*otel.*|cart|checkout|frontend\"})","legendFormat":"{{pod}}"}]
         },
         {
           "type": "stat",
           "title": "Error Budget Remaining (checkout)",
           "gridPos": {"h":8,"w":12,"x":0,"y":12},
           "datasource": {"type":"prometheus","uid":"prometheus"},
-          "targets": [{"expr": "100 - (100 * sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[1h])) / sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[1h])))"}]
+          "targets": [{"expr": "100 - (100 * (sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m])) / sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]))))"}]
         },
         {
           "type": "logs",
           "title": "Current Errors - checkout 500 investigation",
           "gridPos": {"h":8,"w":12,"x":12,"y":12},
           "datasource": {"type":"loki","uid":"loki"},
-          "targets": [{"expr": "{namespace=\"otel-demo\"} |= \"checkout\" |= \"500\" or {namespace=\"otel-demo\"} |= \"error\""}]
+          "targets": [
+            {"expr": "{namespace=\"otel-demo\"} |~ \"error|Error|500|checkout\""},
+            {"expr": "{namespace=\"otel-demo\"} |= \"kafka\""}
+          ]
         }
       ]
     }
