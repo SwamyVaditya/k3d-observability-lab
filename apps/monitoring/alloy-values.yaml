@@ -45,7 +45,7 @@ alloy:
       // FIX 1: Use otlphttp to tempo on port 3200, not grpc on 4317
       otelcol.exporter.otlphttp "to_tempo" {
         client {
-          endpoint = "http://tempo.monitoring.svc.cluster.local:3200/v1/traces"
+          endpoint = "http://tempo.monitoring.svc.cluster.local:3100/v1/traces"
         }
       }
 
