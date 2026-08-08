@@ -17,65 +17,65 @@ data:
         {
           "type": "stat",
           "title": "1. Traffic - req/s (now)",
-          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
-          "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "sum by (service_name) (rate({service_name=~\"frontend|cart|checkout\"}[5m]))"}]
+          "gridPos": {"h":4,"w":6,"x":0,"y":0},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "sum(rate(app_frontend_requests_total[5m]))"}]
         },
         {
           "type": "stat",
-          "title": "2. Errors - Error % (5m)",
-          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
-          "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "100 * ( (sum(rate({namespace=\"otel-demo\"} |= \"error\" [5m])) or vector(0)) / sum(rate({namespace=\"otel-demo\"}[5m])) )"}],
-          "fieldConfig": {"defaults": {"unit": "percent", "noValue": "0%", "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
+          "title": "2. Errors - Error % (5m) - checkout kafka bug",
+          "gridPos": {"h":4,"w":6,"x":6,"y":0},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "100 * sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m])) / sum(rate(app_frontend_requests_total[5m]))"}],
+          "fieldConfig": {"defaults": {"unit":"percent","thresholds":{"steps":[{"color":"green"},{"color":"yellow","value":1},{"color":"red","value":5}]}}}
         },
         {
           "type": "stat",
           "title": "3. Latency - p95 (5m)",
-          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_duration_milliseconds_bucket{namespace=\"otel-demo\"}[5m]))) / 1000 or histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"otel-demo\"}[5m]))) or vector(0.05)"}],
-          "fieldConfig": {"defaults": {"unit": "s", "noValue": "0.05s"}}
+          "gridPos": {"h":4,"w":6,"x":12,"y":0},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "histogram_quantile(0.95, sum by(le)(rate(http_server_request_duration_seconds_bucket{job=\"cart\"}[5m])))"}],
+          "fieldConfig": {"defaults":{"unit":"s"}}
         },
         {
           "type": "stat",
-          "title": "4. Saturation - CPU %",
-          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"otel-demo\",container!=\"\"}[5m])) * 100 or vector(0)"}],
-          "fieldConfig": {"defaults": {"unit": "percent", "noValue": "0%"}}
+          "title": "4. Saturation - CPU % (otel-demo ns)",
+          "gridPos": {"h":4,"w":6,"x":18,"y":0},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"otel-demo\",container!=\"\"}[5m])) * 100"}],
+          "fieldConfig": {"defaults":{"unit":"percent"}}
         },
         {
           "type": "timeseries",
-          "title": "SLO - Error Budget Burn Rate",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "title": "SLO - Error Budget Burn Rate (checkout)",
+          "gridPos": {"h":8,"w":12,"x":0,"y":4},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
           "targets": [
-            {"expr": "sli:errors:ratio_rate_5m or vector(0)", "legendFormat": "Burn 5m"},
-            {"expr": "sli:errors:ratio_rate_1h or vector(0)", "legendFormat": "Burn 1h"},
-            {"expr": "0.005", "legendFormat": "SLO 0.5%"}
+            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m])) / sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]))","legendFormat":"Burn 5m - checkout 500 %"},
+            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[1h])) / sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[1h]))","legendFormat":"Burn 1h - checkout 500 %"},
+            {"expr": "0.005","legendFormat":"SLO 0.5%"}
           ]
         },
         {
           "type": "timeseries",
           "title": "Saturation - Memory Usage",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"otel-demo\",container!=\"\"}) or sum by (pod) (container_memory_usage_bytes{namespace=\"otel-demo\",container!=\"\"})", "legendFormat": "{{pod}}"}]
+          "gridPos": {"h":8,"w":12,"x":12,"y":4},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "sum by(pod)(container_memory_working_set_bytes{namespace=\"otel-demo\",container!=\"\"})","legendFormat":"{{pod}}"}]
         },
         {
           "type": "stat",
-          "title": "Error Budget Remaining",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "100 - ((sli:errors:ratio_rate_1h or vector(0)) * 100)"}]
+          "title": "Error Budget Remaining (checkout)",
+          "gridPos": {"h":8,"w":12,"x":0,"y":12},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "100 - (100 * sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[1h])) / sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[1h])))"}]
         },
         {
           "type": "logs",
-          "title": "Current Errors - For Burn Investigation",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
-          "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "{namespace=\"otel-demo\"} |= \"error\""}]
+          "title": "Current Errors - checkout 500 investigation",
+          "gridPos": {"h":8,"w":12,"x":12,"y":12},
+          "datasource": {"type":"loki","uid":"loki"},
+          "targets": [{"expr": "{namespace=\"otel-demo\"} |= \"checkout\" |= \"500\" or {namespace=\"otel-demo\"} |= \"error\""}]
         }
       ]
     }
