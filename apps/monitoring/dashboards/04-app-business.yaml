@@ -14,31 +14,42 @@ data:
       "uid": "app-business",
       "timezone": "browser",
       "schemaVersion": 39,
-      "tags": ["phase2","sre","golden-signals"],
       "panels": [
         {
           "type": "timeseries",
-          "title": "Checkout Rate (by status)",
+          "title": "Checkout Rate (Place Order) - 500 = kafka disabled",
           "gridPos": {"h":8,"w":12,"x":0,"y":0},
-          "targets": [{"expr": "sum by(http_status_code)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_method=\"POST\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
+          "targets": [{
+            "expr": "sum by(status)(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]))",
+            "datasource":{"type":"prometheus","uid":"prometheus"}
+          }]
         },
         {
           "type": "timeseries",
           "title": "Cart Operations",
           "gridPos": {"h":8,"w":12,"x":12,"y":0},
-          "targets": [{"expr": "sum by(http_method)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
+          "targets": [{
+            "expr": "sum by(target, method)(rate(app_frontend_requests_total{target=~\"/api/cart.*\"}[5m]))",
+            "datasource":{"type":"prometheus","uid":"prometheus"}
+          }]
         },
         {
           "type": "timeseries",
-          "title": "Error Rate by Target (Payment/Checkout fail = kafka disabled)",
+          "title": "Cart Service gRPC - AddItem / GetCart",
           "gridPos": {"h":8,"w":12,"x":0,"y":8},
-          "targets": [{"expr": "sum by(http_target)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_status_code=~\"5..\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
+          "targets": [{
+            "expr": "sum by(http_route)(rate(http_server_request_duration_seconds_count{job=\"cart\"}[5m]))",
+            "datasource":{"type":"prometheus","uid":"prometheus"}
+          }]
         },
         {
           "type": "timeseries",
-          "title": "Frontend Availability - HTTP 200 vs 500",
+          "title": "Checkout Failures vs Success",
           "gridPos": {"h":8,"w":12,"x":12,"y":8},
-          "targets": [{"expr": "sum by(http_status_code)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
+          "targets": [
+            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}},
+            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"200\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}
+          ]
         }
       ]
     }
