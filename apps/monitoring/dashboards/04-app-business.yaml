@@ -20,13 +20,13 @@ data:
           "type": "timeseries",
           "title": "Checkout Rate (by status)",
           "gridPos": {"h":8,"w":12,"x":0,"y":0},
-          "targets": [{"expr": "sum by(http_status_code)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_target=~\".*checkout.*\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
+          "targets": [{"expr": "sum by(http_status_code)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_method=\"POST\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
           "title": "Cart Operations",
           "gridPos": {"h":8,"w":12,"x":12,"y":0},
-          "targets": [{"expr": "sum by(http_method)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_target=~\".*cart.*\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
+          "targets": [{"expr": "sum by(http_method)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
