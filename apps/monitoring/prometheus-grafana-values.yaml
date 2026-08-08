@@ -15,18 +15,15 @@ prometheus:
             requests:
               storage: "1Gi"
 
-    serviceMonitorSelector:
-      matchLabels:
-        release: prometheus-stack
+    serviceMonitorSelector: {}
     serviceMonitorSelectorNilUsesHelmValues: false
-    podMonitorSelector:
-      matchLabels:
-        release: prometheus-stack
-    serviceMonitorNamespaceSelector:
-      matchLabels:
-        name: otel-demo
-    # OR just allow all namespaces:
-    # serviceMonitorNamespaceSelector: {}
+    podMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    additionalArgs:
+      - name: storage.tsdb.out-of-order-time-window
+        value: 30m
+      - name: storage.tsdb.out-of-bounds-time-window
+        value: 24h
 
     
     # Optional: skip WAL replay on next start if corrupted
