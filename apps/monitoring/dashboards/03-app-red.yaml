@@ -14,125 +14,43 @@ data:
       "uid": "app-red",
       "timezone": "browser",
       "schemaVersion": 39,
-      "tags": [
-        "phase2",
-        "sre",
-        "golden-signals"
-      ],
+      "tags": ["phase2","sre","golden-signals"],
       "panels": [
         {
           "type": "stat",
           "title": "Total Request Rate (RPS)",
-          "gridPos": {
-            "h": 4,
-            "w": 8,
-            "x": 0,
-            "y": 0
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(http_server_requests_seconds_count[5m]))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "gridPos": {"h":4,"w":8,"x":0,"y":0},
+          "targets": [{"expr": "sum(rate(http_server_duration_milliseconds_count{job=\"otel-demo\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "stat",
           "title": "Error Rate %",
-          "gridPos": {
-            "h": 4,
-            "w": 8,
-            "x": 8,
-            "y": 0
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m]))/sum(rate(http_server_requests_seconds_count[5m]))*100",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "gridPos": {"h":4,"w":8,"x":8,"y":0},
+          "targets": [{"expr": "sum(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_status_code=~\"5..\"}[5m]))/sum(rate(http_server_duration_milliseconds_count{job=\"otel-demo\"}[5m]))*100","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "stat",
           "title": "P95 Latency",
-          "gridPos": {
-            "h": 4,
-            "w": 8,
-            "x": 16,
-            "y": 0
-          },
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.95, sum by(le)(rate(http_server_requests_seconds_bucket[5m])))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "gridPos": {"h":4,"w":8,"x":16,"y":0},
+          "targets": [{"expr": "histogram_quantile(0.95, sum by(le)(rate(http_server_duration_milliseconds_bucket{job=\"otel-demo\"}[5m])))/1000","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
-          "title": "RED - Rate by Service",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 4
-          },
-          "targets": [
-            {
-              "expr": "sum by(service)(rate(http_server_requests_seconds_count[5m]))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "title": "RED - Rate by HTTP Target",
+          "gridPos": {"h":8,"w":12,"x":0,"y":4},
+          "targets": [{"expr": "sum by(http_target)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
-          "title": "RED - Errors by Service",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 4
-          },
-          "targets": [
-            {
-              "expr": "sum by(service)(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m]))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "title": "RED - Errors by HTTP Target",
+          "gridPos": {"h":8,"w":12,"x":12,"y":4},
+          "targets": [{"expr": "sum by(http_target)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_status_code=~\"5..\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
-          "title": "RED - Duration P95 by Service",
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 12
-          },
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.95, sum by(le, service)(rate(http_server_requests_seconds_bucket[5m])))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "title": "RED - Duration P95 by Target",
+          "gridPos": {"h":8,"w":24,"x":0,"y":12},
+          "targets": [{"expr": "histogram_quantile(0.95, sum by(le, http_target)(rate(http_server_duration_milliseconds_bucket{job=\"otel-demo\"}[5m])))/1000","datasource":{"type":"prometheus","uid":"prometheus"}}]
         }
       ]
     }

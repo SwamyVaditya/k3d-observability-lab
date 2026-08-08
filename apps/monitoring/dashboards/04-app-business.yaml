@@ -14,87 +14,31 @@ data:
       "uid": "app-business",
       "timezone": "browser",
       "schemaVersion": 39,
-      "tags": [
-        "phase2",
-        "sre",
-        "golden-signals"
-      ],
+      "tags": ["phase2","sre","golden-signals"],
       "panels": [
         {
           "type": "timeseries",
-          "title": "Checkout Rate",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(http_server_requests_seconds_count{service=\"checkout\"}[5m]))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "title": "Checkout Rate (by status)",
+          "gridPos": {"h":8,"w":12,"x":0,"y":0},
+          "targets": [{"expr": "sum by(http_status_code)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_target=~\".*checkout.*\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
           "title": "Cart Operations",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
-          "targets": [
-            {
-              "expr": "sum(rate(http_server_requests_seconds_count{service=\"cart\"}[5m]))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "gridPos": {"h":8,"w":12,"x":12,"y":0},
+          "targets": [{"expr": "sum by(http_method)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_target=~\".*cart.*\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
-          "title": "Payment Latency",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.95, sum by(le)(rate(http_server_requests_seconds_bucket{service=\"payment\"}[5m])))",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "title": "Error Rate by Target (Payment/Checkout fail = kafka disabled)",
+          "gridPos": {"h":8,"w":12,"x":0,"y":8},
+          "targets": [{"expr": "sum by(http_target)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\",http_status_code=~\"5..\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         },
         {
           "type": "timeseries",
-          "title": "Frontend Availability",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
-          "targets": [
-            {
-              "expr": "up{job=~\".*frontend.*\"}",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              }
-            }
-          ]
+          "title": "Frontend Availability - HTTP 200 vs 500",
+          "gridPos": {"h":8,"w":12,"x":12,"y":8},
+          "targets": [{"expr": "sum by(http_status_code)(rate(http_server_duration_milliseconds_count{job=\"otel-demo\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}]
         }
       ]
     }
