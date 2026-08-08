@@ -19,11 +19,10 @@ prometheus:
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelector: {}
     serviceMonitorNamespaceSelector: {}
-    additionalArgs:
-      - name: storage.tsdb.out-of-order-time-window
-        value: 30m
-      - name: storage.tsdb.out-of-bounds-time-window
-        value: 24h
+    enableFeatures:
+      - exemplar-storage
+    tsdb:
+      outOfOrderTimeWindow: 30m
 
     
     # Optional: skip WAL replay on next start if corrupted
