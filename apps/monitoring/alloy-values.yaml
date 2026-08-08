@@ -13,12 +13,8 @@ alloy:
     create: true
     content: |
       otelcol.receiver.otlp "default" {
-        grpc {
-          endpoint = "0.0.0.0:4317"
-        }
-        http {
-          endpoint = "0.0.0.0:4318"
-        }
+        grpc { endpoint = "0.0.0.0:4317" }
+        http { endpoint = "0.0.0.0:4318" }
         output {
           logs    = [otelcol.processor.batch.default.input]
           traces  = [otelcol.processor.batch.default.input]
@@ -27,10 +23,9 @@ alloy:
       }
 
       otelcol.processor.batch "default" {
-        send_batch_size     = 1000
-        timeout             = "15s" 
+        send_batch_size = 1000
+        timeout = "15s" 
         send_batch_max_size = 1500
-
         output {
           logs    = [otelcol.exporter.loki.to_loki.input]
           traces  = [otelcol.exporter.otlp.to_tempo.input]
@@ -44,20 +39,17 @@ alloy:
 
       loki.write "endpoint" {
         endpoint {
-          url = "http://loki-headless.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+          url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
         }
       }
 
       otelcol.exporter.otlp "to_tempo" {
         client {
-          endpoint = "tempo.monitoring.svc.cluster.local:4317"
-          tls {
-            insecure = true
-          }
+          endpoint = "tempo.monitoring.svc.cluster.local:3100"
+          tls { insecure = true }
         }
       }
 
-      // --- METRICS PIPELINE - THIS WAS MISSING ---
       otelcol.exporter.prometheus "to_prometheus" {
         forward_to = [prometheus.remote_write.to_prometheus.receiver]
       }
