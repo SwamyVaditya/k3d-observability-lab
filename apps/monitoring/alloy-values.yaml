@@ -45,8 +45,8 @@ alloy:
 
       otelcol.exporter.otlp "to_tempo" {
         client {
-          endpoint = "tempo.monitoring.svc.cluster.local:3100"
-          tls { insecure = true }
+          endpoint = "tempo.monitoring.svc.cluster.local:4317"
+          tls { insecure = true insecure_skip_verify = true }
         }
       }
 
@@ -57,5 +57,8 @@ alloy:
       prometheus.remote_write "to_prometheus" {
         endpoint {
           url = "http://prometheus-stack-kube-prom-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+        }
+        wal_options {
+          truncate_frequency = "5m"
         }
       }
