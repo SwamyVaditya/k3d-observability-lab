@@ -24,8 +24,8 @@ data:
           "gridPos":{"h":8,"w":12,"x":0,"y":4},
           "datasource":{"type":"prometheus","uid":"prometheus"},
           "targets":[
-            {"expr":"100 * sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m])) / sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]))","legendFormat":"Burn 5m %"},
-            {"expr":"100 * sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[15m])) / sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[15m]))","legendFormat":"Burn 15m %"},
+            {"expr":"100 * sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m])) / (sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m])) + 0.0001)","legendFormat":"Burn 5m % - should be ~100%"},
+            {"expr":"100 * sum(rate(app_frontend_requests_total{status=\"500\"}[5m])) / (sum(rate(app_frontend_requests_total[5m])) + 0.0001)","legendFormat":"Burn 5m ALL % - should be ~33%"},
             {"expr":"0.5","legendFormat":"SLO 0.5%"}
           ],
           "fieldConfig":{"defaults":{"unit":"percent"}}
