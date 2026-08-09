@@ -19,8 +19,8 @@ prometheus:
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelector: {}
     serviceMonitorNamespaceSelector: {}
-    enableFeatures:
-      - exemplar-storage
+    #enableFeatures:
+    #  - exemplar-storage
     tsdb:
       outOfOrderTimeWindow: 2h
     retention: 10d
