@@ -78,7 +78,19 @@ data:
               "legendFormat": "Budget Remaining %"
             }
           ],
-          "fieldConfig":{"defaults":{"unit":"percent"}}
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 20},
+                  {"color": "green", "value": 80}
+                ]
+              }
+            }
+          }
         },
         {
           "type":"timeseries",

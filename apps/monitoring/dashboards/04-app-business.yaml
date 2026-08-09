@@ -17,7 +17,7 @@ data:
       "panels": [
         {
           "type": "timeseries",
-          "title": "Checkout Rate (Place Order) - 500 = kafka disabled",
+          "title": "Checkout Rate (Place Order) - 500 indicates kafka/queue failure",
           "gridPos": {"h":8,"w":12,"x":0,"y":0},
           "targets": [{
             "expr": "sum by(status)(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]))",
