@@ -15,11 +15,11 @@ components:
   ad: { enabled: false }
   #fraud-detection: { enabled: false }
   # image-provider: { enabled: false }
-  kafka: 
-    enabled: true
-    resources:
-      limits:
-        memory: 300Mi
+  #kafka: 
+  #  enabled: true
+  #  resources:
+  #    limits:
+  #      memory: 300Mi
 
   
   # llm: { enabled: false }
