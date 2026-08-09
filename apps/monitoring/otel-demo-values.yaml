@@ -16,7 +16,7 @@ components:
   #fraud-detection: { enabled: false }
   # image-provider: { enabled: false }
   kafka: 
-    enabled: false
+    enabled: true
     resources:
       limits:
         memory: 300Mi
