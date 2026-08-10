@@ -56,8 +56,25 @@ data:
           "type": "stat",
           "title": "Error Budget Remaining",
           "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
-          "targets": [{"expr": "slo:checkout:budget_remaining_percent or vector(100)", "datasource": {"uid": "prometheus"}}],
-          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "yellow", "value": 20}, {"color": "green", "value": 80}]}}}
+          "targets": [{
+            "expr": "slo:checkout:budget_remaining_percent",
+            "legendFormat": "Budget",
+            "datasource": {"uid": "prometheus"}
+          }],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "100%",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 20},
+                  {"color": "green", "value": 80}
+                ]
+              }
+            }
+          }
         },
         {
           "type": "timeseries",
