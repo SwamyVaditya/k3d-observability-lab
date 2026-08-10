@@ -84,7 +84,7 @@ data:
           "type": "timeseries",
           "title": "Pod Restarts (1h)",
           "gridPos": {"h": 8, "w": 8, "x": 8, "y": 20},
-          "targets": [{"expr": "sum by(pod) (increase(kube_pod_container_status_restarts_total)) > 0"}]
+          "targets": [{"expr": "sum by(pod) (increase(kube_pod_container_status_restarts_total[1h])) > 0"}]
         },
         {
           "type": "timeseries",
