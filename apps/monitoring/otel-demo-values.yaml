@@ -15,8 +15,9 @@ components:
   ad: { enabled: false }
   #fraud-detection: { enabled: false }
   # image-provider: { enabled: false }
-  #kafka: 
-  #  enabled: true
+  
+  kafka: 
+    enabled: false
   #  resources:
   #    limits:
   #      memory: 300Mi
