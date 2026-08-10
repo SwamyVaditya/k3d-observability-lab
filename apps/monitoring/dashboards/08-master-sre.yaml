@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: 08-master-sre
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "SRE"
+data:
+  master-sre.json: |-
+    {
+      "title": "00 - Master SRE - One Screen",
+      "uid": "master-sre-one",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "tags": ["phase4", "sre", "master"],
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Traffic - req/s (now)",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [{"expr": "sum(rate(app_frontend_requests_total[1m]))", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "type": "stat",
+          "title": "Errors - Error % (5m)",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [{"expr": "sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m])) / (sum(rate(app_frontend_requests_total[5m])) + 0.0001) * 100", "datasource": {"uid": "prometheus"}}],
+          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
+        },
+        {
+          "type": "stat",
+          "title": "Latency - p95 (5m)",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "targets": [{"expr": "histogram_quantile(0.95, sum by(le) (rate(http_server_request_duration_seconds_bucket{job=\"cart\"}[5m]))) * 1000", "datasource": {"uid": "prometheus"}}],
+          "fieldConfig": {"defaults": {"unit": "ms"}}
+        },
+        {
+          "type": "stat",
+          "title": "Up Services",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [{"expr": "count(up==1)", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "type": "timeseries",
+          "title": "SLO - Burn Rate (checkout) >0.5% = BURNING",
+          "gridPos": {"h": 8, "w": 16, "x": 0, "y": 4},
+          "targets": [
+            {"expr": "slo:checkout:error_rate:5m * 100", "legendFormat": "Burn 5m %"},
+            {"expr": "slo:all:error_rate:5m * 100", "legendFormat": "Burn 5m ALL %"},
+            {"expr": "0.5", "legendFormat": "SLO 0.5%"}
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Error Budget Remaining",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
+          "targets": [{"expr": "slo:checkout:budget_remaining_percent", "datasource": {"uid": "prometheus"}}],
+          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "yellow", "value": 20}, {"color": "green", "value": 80}]}}}
+        },
+        {
+          "type": "timeseries",
+          "title": "Checkout vs Cart RPS",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "targets": [
+            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[1m]))", "legendFormat": "checkout RPS"},
+            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/cart\"}[1m]))", "legendFormat": "cart RPS"}
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Business - Orders / min",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "targets": [{"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\", status!~\"5..\"}[1m])) * 60", "legendFormat": "Orders/min"}]
+        },
+        {
+          "type": "stat",
+          "title": "Pods Not Ready",
+          "gridPos": {"h": 4, "w": 8, "x": 0, "y": 20},
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase!='Running'})"}]
+        },
+        {
+          "type": "timeseries",
+          "title": "Pod Restarts (1h)",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 20},
+          "targets": [{"expr": "sum by(pod) (increase(kube_pod_container_status_restarts_total[1h]))"}]
+        },
+        {
+          "type": "timeseries",
+          "title": "Current Errors - checkout 500/s",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 20},
+          "targets": [
+            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[1m]))", "legendFormat": "checkout 500/s"},
+            {"expr": "sum(rate(app_frontend_requests_total{status=~\"5..\"}[1m]))", "legendFormat": "all 5xx/s"}
+          ]
+        }
+      ]
+    }
