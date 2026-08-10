@@ -20,7 +20,7 @@ data:
           "type": "stat",
           "title": "Traffic - req/s (now)",
           "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
-          "targets": [{"expr": "sum(rate(app_frontend_requests_total[1m]))", "datasource": {"uid": "prometheus"}}]
+          "targets": [{"expr": "sum(rate(app_frontend_requests_total[1m])) or vector(0)", "datasource": {"uid": "prometheus"}}]
         },
         {
           "type": "stat",
@@ -64,34 +64,34 @@ data:
           "title": "Checkout vs Cart RPS",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
           "targets": [
-            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[1m]))", "legendFormat": "checkout RPS"},
-            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/cart\"}[1m]))", "legendFormat": "cart RPS"}
+            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\"}[1m]))", "legendFormat": "checkout RPS"},
+            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*cart.*\"}[1m]))", "legendFormat": "cart RPS"}
           ]
         },
         {
           "type": "timeseries",
           "title": "Business - Orders / min",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
-          "targets": [{"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\", status!~\"5..\"}[1m])) * 60", "legendFormat": "Orders/min"}]
+          "targets": [{"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\", status!~\"5..\"}[1m])) * 60 or vector(0)", "legendFormat": "Orders/min"}]
         },
         {
           "type": "stat",
           "title": "Pods Not Ready",
           "gridPos": {"h": 4, "w": 8, "x": 0, "y": 20},
-          "targets": [{"expr": "sum(kube_pod_status_phase{phase!='Running'})"}]
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase=~\"Pending|Unknown|Failed\"})"}]
         },
         {
           "type": "timeseries",
           "title": "Pod Restarts (1h)",
           "gridPos": {"h": 8, "w": 8, "x": 8, "y": 20},
-          "targets": [{"expr": "sum by(pod) (increase(kube_pod_container_status_restarts_total[1h]))"}]
+          "targets": [{"expr": "sum by(pod) (increase(kube_pod_container_status_restarts_total)) > 0"}]
         },
         {
           "type": "timeseries",
           "title": "Current Errors - checkout 500/s",
           "gridPos": {"h": 8, "w": 8, "x": 16, "y": 20},
           "targets": [
-            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[1m]))", "legendFormat": "checkout 500/s"},
+            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=\"500\"}[1m])) or vector(0)", "legendFormat": "checkout 500/s"},
             {"expr": "sum(rate(app_frontend_requests_total{status=~\"5..\"}[1m]))", "legendFormat": "all 5xx/s"}
           ]
         }
