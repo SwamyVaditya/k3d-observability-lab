@@ -140,7 +140,12 @@ alertmanager:
     secrets:
       - alertmanager-slack
     resources:
-      limits: { memory: 150Mi }
+      requests:
+        cpu: 10m
+        memory: 50Mi
+      limits:
+        cpu: 100m
+        memory: 300Mi
 
 
 # Tighten these up for your 8GB machine
