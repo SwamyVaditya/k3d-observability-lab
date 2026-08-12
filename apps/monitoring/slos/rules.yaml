@@ -11,32 +11,27 @@ spec:
     - name: checkout-slo
       interval: 30s
       rules:
-      # --- Recording rules using real working metrics we discovered ---
         - record: slo:checkout:error_rate:5m
           expr: |
             sum(rate(app_frontend_requests_total{target="/api/checkout",status="500"}[5m]))
             /
             (sum(rate(app_frontend_requests_total{target="/api/checkout"}[5m])) + 0.0001)
-
         - record: slo:checkout:traffic:5m
           expr: sum(rate(app_frontend_requests_total{target="/api/checkout"}[5m]))
-
         - record: slo:checkout:budget_remaining_percent
           expr: 100 * (1 - slo:checkout:error_rate:5m)
-
         - record: slo:all:error_rate:5m
           expr: |
             sum(rate(app_frontend_requests_total{status=~"5.."}[5m]))
             /
             (sum(rate(app_frontend_requests_total[5m])) + 0.0001)
-
         - record: slo:cart:p95_latency:5m
           expr: |
             histogram_quantile(0.95,
               sum by(le) (rate(http_server_request_duration_seconds_bucket{job="cart"}[5m]))
             )
 
-      # --- SLO Alerts - 99.5% success = 0.5% error budget ---
+        # --- SLO Alerts ---
         - alert: CheckoutSLOBurning
           expr: slo:checkout:error_rate:5m > 0.005
           for: 2m
@@ -46,8 +41,8 @@ spec:
             team: app
           annotations:
             summary: "Checkout SLO burning - error rate {{ $value | humanizePercentage }} > 0.5% SLO"
-            description: "Checkout failure is {{ $value | humanizePercentage }}. Error budget remaining is {{ $labels.budget }}. Check kafka/otel-demo."
-            runbook: "kubectl -n otel-demo get pods | grep kafka"
+            description: "Checkout failure is {{ $value | humanizePercentage }} (budget {{ $value | humanizePercentage }} used). Current value: {{ $value }}. Check: kubectl -n otel-demo get pods | grep kafka"
+            runbook_url: "https://github.com/SwamyVaditya/k3d-observability-lab/blob/main/docs/runbooks/checkout-slo-burning.md"
 
         - alert: CheckoutErrorBudgetExhausted
           expr: slo:checkout:error_rate:5m > 0.02
@@ -58,7 +53,7 @@ spec:
             team: app
           annotations:
             summary: "Checkout error budget exhausted - {{ $value | humanizePercentage }} errors"
-            description: "Burn rate 4x SLO. Immediate action required. Orders failing."
+            description: "Burn rate 4x SLO ({{ $value | humanizePercentage }}). Immediate action required. Orders failing."
 
         - alert: CheckoutTrafficAbsent
           expr: slo:checkout:traffic:5m == 0
@@ -67,7 +62,7 @@ spec:
             severity: warning
             slo: checkout
           annotations:
-            summary: "No checkout traffic for 15m - possible frontend down"
+            summary: "No checkout traffic for 15m"
 
         - alert: CartHighLatency
           expr: slo:cart:p95_latency:5m > 0.5
