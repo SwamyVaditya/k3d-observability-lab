@@ -97,45 +97,30 @@ grafana:
 
     
 
-# Disable Alertmanager to save another ~200MB of RAM
 alertmanager:
-  enabled: true
   config:
     global:
-      resolve_timeout: 5m
-      slack_api_url_file: /etc/alertmanager/secrets/slack_api_url
-#      slack_api_url: "YOUR_WEBHOOK_URL_HERE"  # we will replace with secret file later
-#    templates:
-#      - '/etc/alertmanager/config/*.tmpl'
+      slack_api_url_file: /etc/alertmanager/secrets/alertmanager-slack/slack_api_url
     route:
-      group_by: ['alertname', 'slo', 'severity']
+      group_by: ['alertname', 'severity', 'slo']
       group_wait: 10s
       group_interval: 1m
       repeat_interval: 2h
       receiver: 'slack-sre'
-      routes:
-        - match:
-            severity: page
-          receiver: 'slack-sre'
-          continue: true
-        - match:
-            severity: critical
-          receiver: 'slack-sre'
-
     receivers:
       - name: 'slack-sre'
         slack_configs:
           - channel: '#alerts-sre'
-            title: '{{ if eq .GroupLabels.severity "page" }}:rotating_light: PAGE {{ else }}:warning: {{ end }} {{ .GroupLabels.alertname }}'
-            text: |
-              {{ range .Alerts }}*Summary:* {{ .Annotations.summary }}
+            title: '{{ if eq .Status "firing" }}:rotating_light: {{ .GroupLabels.alertname }} ({{ .GroupLabels.severity }}){{ else }}:white_check_mark: RESOLVED {{ .GroupLabels.alertname }}{{ end }}'
+            text: |-
+              {{ range .Alerts }}
+              *Summary:* {{ .Annotations.summary }}
               *Description:* {{ .Annotations.description }}
-              *Value:* {{ .Value }} | *Team:* {{ .Labels.team }} | *SLO:* {{ .Labels.slo }}
+              *Severity:* {{ .Labels.severity }} | *Team:* {{ .Labels.team }}
               {{ end }}
-            color: '{{ if eq .GroupLabels.severity "page" }}danger{{ else if eq .GroupLabels.severity "critical" }}warning{{ else }}good{{ end }}'
             send_resolved: true
+            color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
 
-  
   alertmanagerSpec:
     secrets:
       - alertmanager-slack
@@ -146,6 +131,8 @@ alertmanager:
       limits:
         cpu: 100m
         memory: 300Mi
+
+  
 
 
 # Tighten these up for your 8GB machine
