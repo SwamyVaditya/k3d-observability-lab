@@ -6,7 +6,7 @@ opensearch: { enabled: false }
 prometheus: { enabled: false }
 grafana: { enabled: false }
 jaeger: { enabled: false }
-# kafka: { enabled: false }
+kafka: { enabled: false }
 
 # --- COMPONENTS (MICROSERVICES) ---
 # We keep only the bare essentials to see the shop.
