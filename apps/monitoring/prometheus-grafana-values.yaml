@@ -102,24 +102,18 @@ alertmanager:
     global:
       slack_api_url_file: /etc/alertmanager/secrets/alertmanager-slack/slack_api_url
     route:
-      group_by: ['alertname', 'severity', 'slo']
+      group_by: ['alertname']
       group_wait: 10s
-      group_interval: 1m
-      repeat_interval: 2h
+      group_interval: 10s
+      repeat_interval: 5m
       receiver: 'slack-sre'
     receivers:
       - name: 'slack-sre'
         slack_configs:
           - channel: '#alerts-sre'
-            title: '{{ if eq .Status "firing" }}:rotating_light: {{ .GroupLabels.alertname }} ({{ .GroupLabels.severity }}){{ else }}:white_check_mark: RESOLVED {{ .GroupLabels.alertname }}{{ end }}'
-            text: |-
-              {{ range .Alerts }}
-              *Summary:* {{ .Annotations.summary }}
-              *Description:* {{ .Annotations.description }}
-              *Severity:* {{ .Labels.severity }} | *Team:* {{ .Labels.team }}
-              {{ end }}
+            title: ':rotating_light: {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
             send_resolved: true
-            color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
 
   alertmanagerSpec:
     secrets:
