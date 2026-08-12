@@ -1,0 +1,15 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: alertmanager-slack
+  namespace: monitoring
+spec:
+  encryptedData:
+    slack_api_url: AgBGZkfFYUHy4Fc4imfRiUfX7rLeX9LXpTC6E1UiOe69gvGTF4KQ6ujwiSJm0roKBmeoYIiMucl528B2zSardZfp3EbAW5y80CAI97Zm6OrQT5YS2OWfxpM7FwSlZU4IRL2U+4WHnEN+e2Mzrdb1ampHm0TpkrLFLG7aLygK1ub5Mj9O99LoEKWPAKsQAB3hUxdrzg2zxvqjLymBUociLUrhgyutITgiLW3Lop4esLSZxf5nP9bhCrKaQvTQYyXV5uEXjgLnY4HgpQpag+G2WhZb1v696UQf7q9+Y9sIt1cIjwLgyu+KO272v80xuh96OD0On43k9qEjxU4iPSZqBvN3inAcq7uRW6gs2+hkV8F+L4daJAMWf3w/xexbsHNKbOCddTbGv6xKrV/fMS3bXCBL01Mp0e7aoCmZ0uFKWY+jtUFFy8vHr3mK20D35Y3Y+5MPA/9LehI0KRwAKcfUk9BoByYrKsAD065Vi+nPljke/d9C6h/qqQVXHoT4iqMs4LfiiI6YROXdusAWoRUz7LtNMixOCSIUnE4q1T9p8hYPxaecrd7yJ2SpDHbF3O03i/B/AlrTk6XETJT7ItguUIfpEtitKAQsE9Z2Jx5dj9QtSAYitJL5HKJraC8z49NYLHgw2Z8Wzq74Bi6v8sn/d6WZD04CYxOBu1mRQZdU1jkx+nJsV19VgYhkM4bIaOqNmLsQ7vcVROBICEh5PWDgHbAgdpj7dCiWBbrmTs7CYzZbXEJ8QI+drVI1c70OlkeDcZpbRFs4c2fJP86Sy5svIXcUJLGgNV9YXXnHBRIDmonYQtQ=
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+      name: alertmanager-slack
+      namespace: monitoring

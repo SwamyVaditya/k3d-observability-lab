@@ -24,6 +24,7 @@ tmp/
 # Ignore plaintext local secrets completely
 minio-secret.yaml
 *-local-secret.yaml
+alertmanager-slack.yaml
 
 # Keep sealed secrets tracked in Git
 !minio-sealed-secret.yaml
