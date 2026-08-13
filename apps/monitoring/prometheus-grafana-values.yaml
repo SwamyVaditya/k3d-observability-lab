@@ -118,6 +118,9 @@ alertmanager:
       - receiver: 'null'
         matchers:
           - alertname =~ "KubeControllerManagerDown|KubeSchedulerDown|KubeProxyDown"
+      - receiver: 'null'
+        matchers:
+        - alertname = "AlertmanagerClusterCrashlooping"
     receivers:
       - name: 'null'
       - name: 'slack-sre'

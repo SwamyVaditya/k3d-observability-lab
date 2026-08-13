@@ -61,6 +61,7 @@ spec:
           labels:
             severity: warning
             slo: checkout
+            team: app
           annotations:
             summary: "No checkout traffic for 15m"
 
