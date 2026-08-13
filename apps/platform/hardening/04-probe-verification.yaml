@@ -1,0 +1,101 @@
+# Liveness/Readiness Verification
+# In otel-demo, most deployments already have probes. This file verifies and patches if missing.
+# Apply with: kubectl apply -f 04-probe-verification.yaml
+# Or add to otel-demo Helm values.
+
+# Verification script (run manually):
+# kubectl -n monitoring get deploy -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[0].livenessProbe}{"\t"}{.spec.template.spec.containers[0].readinessProbe}{"\n"}{end}'
+
+# Patches to ensure probes exist for critical services:
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      containers:
+        - name: checkout
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      containers:
+        - name: cart
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      containers:
+        - name: frontend
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      containers:
+        - name: kafka
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 10
+            periodSeconds: 5

@@ -1,0 +1,54 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cart-pdb
+  namespace: monitoring
+  labels:
+    app: cart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: cart
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: checkout-pdb
+  namespace: monitoring
+  labels:
+    app: checkout
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: checkout
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-pdb
+  namespace: monitoring
+  labels:
+    app: frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: frontend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kafka-pdb
+  namespace: monitoring
+  labels:
+    app: kafka
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kafka
+---
+# For single-replica k3d lab, minAvailable:1 prevents voluntary disruption
+# from breaking checkout. For HA prod (3 replicas), use maxUnavailable: 1
