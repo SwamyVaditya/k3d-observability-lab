@@ -98,6 +98,7 @@ grafana:
     
 
 alertmanager:
+  enabled: true
   config:
     global:
       slack_api_url_file: /etc/alertmanager/secrets/alertmanager-slack/slack_api_url
