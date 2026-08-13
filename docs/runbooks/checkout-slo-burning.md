@@ -23,7 +23,7 @@ Error budget remaining is tracked in Grafana dashboard `00 - Master SRE - One Sc
 
 - Slack `#alerts-sre` messages:
   - `:rotating_light: [FIRING] CheckoutSLOBurning (1x) • critical | slo=checkout`
-  - `Checkout failure is 99.98% (budget 99.98% used). Current value: 0.999... Check: kubectl -n otel-demo get pods | grep kafka`
+  - `Checkout failure is 99.98% (budget 99.98% used). Current value: 0.999... Check: kubectl -n monitoring get pods | grep kafka`
 - Grafana:
   - Dashboard: `SRE > 00 - Master SRE - One Screen`
   - Panels:
@@ -65,14 +65,14 @@ kubectl -n monitoring logs -l app.kubernetes.io/name=alertmanager --tail=20
 ### 2. Check otel-demo services (root cause is usually kafka)
 
 ```powershell
-kubectl -n otel-demo get pods | Select-String "kafka|checkout|frontend|cart"
-kubectl -n otel-demo get pods -o wide
+kubectl -n monitoring get pods | Select-String "kafka|checkout|frontend|cart"
+kubectl -n monitoring get pods -o wide
 
 # Most common cause: kafka disabled or crashed
-kubectl -n otel-demo logs -l app=checkout --tail=100 | Select-String -Pattern "kafka|KAFKA|broker|timeout|500"
-kubectl -n otel-demo logs -l app=kafka --tail=100
-kubectl -n otel-demo describe pod -l app=kafka
-kubectl -n otel-demo describe pod -l app=checkout
+kubectl -n monitoring logs -l app=checkout --tail=100 | Select-String -Pattern "kafka|KAFKA|broker|timeout|500"
+kubectl -n monitoring logs -l app=kafka --tail=100
+kubectl -n monitoring describe pod -l app=kafka
+kubectl -n monitoring describe pod -l app=checkout
 ```
 
 ### 3. Check traffic source
@@ -86,16 +86,16 @@ kubectl -n otel-demo describe pod -l app=checkout
 #   Start-Sleep -Milliseconds 500
 # }
 
-kubectl -n otel-demo get deployment load-generator
-kubectl -n otel-demo logs -l app=load-generator --tail=30
+kubectl -n monitoring get deployment load-generator
+kubectl -n monitoring logs -l app=load-generator --tail=30
 ```
 
 ### 4. Check dependencies (DB, Redis, etc.)
 
 ```powershell
-kubectl -n otel-demo get pods
-kubectl -n otel-demo logs -l app=cart --tail=50
-kubectl -n otel-demo logs -l app=frontend --tail=50
+kubectl -n monitoring get pods
+kubectl -n monitoring logs -l app=cart --tail=50
+kubectl -n monitoring logs -l app=frontend --tail=50
 ```
 
 ---
@@ -106,30 +106,30 @@ kubectl -n otel-demo logs -l app=frontend --tail=50
 
 ```powershell
 # If kafka was scaled to 0 for chaos testing:
-kubectl -n otel-demo scale deployment kafka --replicas=1
-kubectl -n otel-demo rollout status deployment/kafka
-kubectl -n otel-demo rollout restart deployment/checkout
-kubectl -n otel-demo get pods -w
+kubectl -n monitoring scale deployment kafka --replicas=1
+kubectl -n monitoring rollout status deployment/kafka
+kubectl -n monitoring rollout restart deployment/checkout
+kubectl -n monitoring get pods -w
 ```
 
 ### If checkout pod crashlooping
 
 ```powershell
-kubectl -n otel-demo delete pod -l app=checkout
-kubectl -n otel-demo rollout restart deployment/checkout
+kubectl -n monitoring delete pod -l app=checkout
+kubectl -n monitoring rollout restart deployment/checkout
 ```
 
 ### If frontend down
 
 ```powershell
-kubectl -n otel-demo rollout restart deployment/frontend
-kubectl -n otel-demo rollout restart deployment/frontendproxy
+kubectl -n monitoring rollout restart deployment/frontend
+kubectl -n monitoring rollout restart deployment/frontendproxy
 ```
 
 ### If no traffic (CheckoutTrafficAbsent alert)
 
 ```powershell
-kubectl -n otel-demo rollout restart deployment/load-generator
+kubectl -n monitoring rollout restart deployment/load-generator
 # OR start manual curl loop (see Diagnosis step 3)
 ```
 
