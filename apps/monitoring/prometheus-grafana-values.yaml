@@ -101,24 +101,32 @@ alertmanager:
   enabled: true
   config:
     global:
-      slack_api_url_file: /etc/alertmanager/secrets/slack_api_url
+      resolve_timeout: 5m
+      slack_api_url_file: /etc/alertmanager/secrets/alertmanager-slack/slack_api_url
+    templates:
+    - '/etc/alertmanager/config/*.tmpl'
     route:
       group_by: ['alertname']
       group_wait: 10s
       group_interval: 10s
       repeat_interval: 5m
       receiver: 'slack-sre'
+      routes:
+      - receiver: 'null'
+        matchers:
+          - alertname = "Watchdog"
     receivers:
-      - name: 'slack-sre'
-        slack_configs:
-          - channel: '#alerts-sre'
-            title: ':rotating_light: {{ .GroupLabels.alertname }}'
-            text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
-            send_resolved: true
-
+    - name: 'null'   # <-- ADD THIS DUMMY RECEIVER TO FIX THE ERROR
+    - name: 'slack-sre'
+      slack_configs:
+      - channel: '#alerts-sre'
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        
   alertmanagerSpec:
     secrets:
-      - alertmanager-slack
+    - alertmanager-slack
     resources:
       requests:
         cpu: 10m
