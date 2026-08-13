@@ -87,7 +87,13 @@ data:
           "type": "timeseries",
           "title": "Business - Orders / min",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
-          "targets": [{"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\", status!~\"5..\"}[5m])) * 60", "legendFormat": "Orders/min", "datasource": {"uid": "prometheus"}}]
+          "targets": [
+            {
+              "expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\", status!~\"5..\"}[5m])) * 60 or vector(0)", 
+              "legendFormat": "Orders/min", 
+              "datasource": {"uid": "prometheus"}
+            }
+          ]
         },
         {
           "type": "stat",
