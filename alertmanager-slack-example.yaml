@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-slack
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+stringData:
+  slack_api_url: https://hooks.slack.com/services/XXXXX/YYYYY/ZZZZZ
