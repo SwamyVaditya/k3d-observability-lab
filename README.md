@@ -2,12 +2,7 @@
 
 A production-grade, local GitOps observability lab running on **K3d (Kubernetes in Docker)**, orchestrated declaratively via **Terraform** and continuously synced using **Argo CD (App-of-Apps pattern)**.
 
-Local Kubernetes (K3d) cluster provisioned with Terraform, running **OpenTelemetry Demo** as the SUT, with full **LGTM stack (Loki, Grafana, Tempo, Mimir/Prometheus)** + **Grafana Alloy**, all deployed via **Argo CD App-of-Apps**. Built to practice SRE, not just monitoring.
-
-[![Argo CD](https://img.shields.io/badge/GitOps-ArgoCD-blue)]()
-[![Terraform](https://img.shields.io/badge/IaC-Terraform-purple)]()
-[![K3d](https://img.shields.io/badge/K8s-K3d-orange)]()
-[![OTel](https://img.shields.io/badge/Observability-OpenTelemetry-brightgreen)]()
+Local Kubernetes (K3d) cluster provisioned with Terraform, running **OpenTelemetry Demo** as the SUT, with full **LGTM stack (Loki, Grafana, Tempo, Prometheus)** + **Grafana Alloy**, all deployed via **Argo CD App-of-Apps**. Built to practice SRE, not just monitoring.
 
 ---
 
@@ -15,30 +10,27 @@ Local Kubernetes (K3d) cluster provisioned with Terraform, running **OpenTelemet
 
 Most observability demos show metrics. This lab shows **how SREs work**:
 
-- App emits OTel traces/metrics/logs → Alloy collects → Loki/Tempo/Mimir store → Grafana visualizes → Prometheus alerts → Runbook tells you what to do → PDBs/ResourceLimits keep it alive.
-- GitOps ensures everything is declarative, drift-corrected, and reproducible.
-
-**Designed for AWS EKS migration:** Local K3d patterns (Terraform + ArgoCD + Helm values) map 1:1 to EKS.
+* **End-to-End Telemetry:** App emits OTel traces/metrics/logs → Alloy collects → Loki/Tempo/Prometheus store → Grafana visualizes → Prometheus alerts → Runbook tells you what to do → PDBs/ResourceLimits keep it alive.
+* **GitOps Automation:** Ensures everything is declarative, drift-corrected, and fully reproducible.
+* **Designed for AWS EKS migration:** Local K3d patterns (Terraform + Argo CD + Helm values) map 1:1 to enterprise cloud environments.
 
 ---
+
 ## Architecture
 
 ### Diagram 1 - GitOps Workflow (with Production Hardening)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/diagram1_darl.png">
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/diagram1_dark.png">
   <source media="(prefers-color-scheme: light)" srcset="./docs/images/diagram1_light.png">
   <img alt="Diagram 1 - GitOps Workflow - k3d-observability-lab - Argo CD App-of-Apps with 8 apps including hardening" src="./docs/images/diagram1_light.png">
 </picture>
 
-**Flow:** GitHub (main) → Terraform (bootstrap/main.tf provisions k3d + Argo CD) → K3d Cluster → Argo CD Root App (App-of-Apps) 
-→ Horizontal distribution bar → 8 apps in single row: otel-demo (11 microservices) • prometheus • dashboards • alloy • loki • tempo • minio • hardening-app.yaml (PDBs + Resource Limits + Kyverno policies)
-
-Production Mapping → AWS EKS (Managed K8s Multi-AZ • S3 • CloudWatch • IAM • VPC) below row.
+**Flow:** GitHub (`main`) → Terraform (`bootstrap/main.tf` provisions k3d + Argo CD) → K3d Cluster → Argo CD Root App (App-of-Apps) → 8 core child apps: `otel-demo` (11 microservices) • `prometheus` • `dashboards` • `alloy` • `loki` • `tempo` • `minio` • `hardening` (PDBs + Resource Limits + Kyverno policies).
 
 ---
 
-### Diagram 2 - Observability & SRE Flow (Validated + Slack + Runbook)
+### Diagram 2 - Observability & SRE Flow
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/diagram2_dark.png">
@@ -46,8 +38,6 @@ Production Mapping → AWS EKS (Managed K8s Multi-AZ • S3 • CloudWatch • I
   <img alt="Diagram 2 - Observability & SRE Flow - OpenTelemetry Demo OTLP to Alloy to Loki Tempo Prometheus to Grafana to Alertmanager Slack Runbook" src="./docs/images/diagram2_light.png">
 </picture>
 
-
-**Flow:**
 ```mermaid
 flowchart LR
     OTel["OpenTelemetry Demo<br/>frontend • checkout • cart • kafka<br/>Emitting OTLP"] -- OTLP --> Alloy["Grafana Alloy Collector<br/>OTel Receiver • Log Tailer"]
@@ -68,12 +58,12 @@ flowchart LR
     AM -- "webhook + runbook_url" --> Slack["Slack<br/>#alerts-observability<br/>@sre-oncall"]
     Slack -- "runbook_url annotation<br/>docs/runbooks/checkout-slo-burning.md" --> Runbook["Runbook<br/>SLO Burn-down Steps"]
     Runbook -.-> Grafana
+
 ```
+
 ---
 
-### Architecture Overview
-
-This repository demonstrates enterprise cloud-native patterns for local development, testing infrastructure automation, and validating full-stack observability pipelines before pushing to cloud environments (AWS EKS).
+### Repository Structure
 
 ```text
 k3d-observability-lab/
@@ -99,14 +89,36 @@ k3d-observability-lab/
 
 ```
 
-This project implements a fully automated observability stack mimicking enterprise cloud-native environments:
+---
 
-* **Log Aggregation:** Grafana Loki (Single-Binary mode) backed by MinIO object storage.
-* **Distributed Tracing:** Grafana Tempo integrated with OTLP backends.
-* **Telemetry Collection:** Grafana Alloy acting as a high-performance OpenTelemetry collector.
-* **Metrics & Storage:** Prometheus metrics collection, custom alerting, and MinIO S3-compatible object storage.
-* **GitOps Continuous Deployment:** Argo CD continuously synchronizing cluster state from this repository.
-* **CI Validation:** GitHub Actions validating syntax, linting, and security policies on every push.
+### What I Built (SRE Focus)
+
+#### 1. GitOps with App-of-Apps
+
+* `argocd/root-app.yaml` points to `apps/monitoring/` and discovers child apps automatically.
+* No manual `helm upgrade`. A push to `main` triggers an automatic sync in ~30 seconds.
+* Resolved real-world Argo CD challenges like `SharedResourceWarning` conflicts by cleanly scoping resource ownership (e.g., PDBs owned exclusively by the hardening app).
+
+#### 2. Full Observability Pipeline (LGTM)
+
+* **Traces:** OTel Demo → Alloy (OTLP receiver) → Tempo → Grafana Explore.
+* **Logs:** Pods → Alloy (`loki.source.kubernetes`) → Loki (backed by MinIO) → Grafana.
+* **Metrics:** Kubelet/cAdvisor + ServiceMonitors → Prometheus → Grafana dashboards.
+* **Correlated:** Exemplars linking metrics directly to traces.
+
+#### 3. SRE Production Hardening
+
+Located in `apps/platform/hardening/`:
+
+* **Resource Limits:** Enforced CPU/Memory requests and limits.
+* **PodDisruptionBudgets (PDBs):** Configured `minAvailable: 1` for critical components (`cart`, `checkout`, `frontend`, `kafka`) to safely handle voluntary cluster disruptions.
+* **Probes:** Validated liveness and readiness probes (`/health`) across the OpenTelemetry demo microservices.
+* **Runbooks:** Documented incident responses (`docs/runbooks/checkout-slo-burning.md`) for structured failure recovery.
+
+#### 4. Alerting & Incident Response
+
+* Custom PromQL alerts tracking checkout error budgets and burn rates.
+* Alertmanager webhook integration routed to Slack with active `runbook_url` annotations.
 
 ---
 
@@ -123,39 +135,13 @@ This project implements a fully automated observability stack mimicking enterpri
 * **Grafana Alloy:** OpenTelemetry collector and telemetry agent.
 * **Traefik Ingress:** Local host-based routing (`*.local`).
 
----
-### What I Built (SRE Focus)
 
-#### 1. GitOps with App-of-Apps
-- `argocd/root-app.yaml` points to `apps/monitoring/` - discovers child apps automatically
-- No manual `helm upgrade`. Push to main → Argo syncs in ~30s
-- Fixed real Argo issue: `SharedResourceWarning` when 2 apps owned same Deployment (`OutOfSync 94a0abd` → fixed by owning PDBs only in hardening app, `2104a7f Synced`)
-
-#### 2. Full Observability Pipeline (LGTM)
-- **Traces:** OTel Demo → Alloy (OTLP receiver) → Tempo → Grafana Explore
-- **Logs:** Pods → Alloy (loki.source.kubernetes) → Loki (backed by MinIO) → Grafana
-- **Metrics:** kubelet/cadvisor + ServiceMonitors → Prometheus → Grafana dashboards
-- **Correlated:** Exemplars linking metrics ↔ traces
-
-#### 3. SRE Production Hardening (5B)
-Located in `apps/platform/hardening/`:
-- **Resource Limits:** Set via `kubectl set resources` in lab (would be in `values-prod.yaml` + Kyverno policy in prod EKS)
-- **PDBs:** `02-poddisruptionbudgets.yaml` - `minAvailable: 1` for cart/checkout/frontend/kafka to survive voluntary disruption
-- **NetworkPolicies:** Intentionally skipped - k3d flannel doesn't enforce, documented for Cilium migration
-- **Probes:** Verified liveness/readiness (`/health`) exists in otel-demo
-- **Runbook:** `docs/runbooks/checkout-slo-burning.md` - 5-step diagnosis for `CheckoutSLOBurning` alert (null receiver, KubeControllerManagerDown noise, AlertmanagerClusterCrashlooping in single-node)
-
-Real prod vs lab explained in `apps/platform/hardening/README.md`.
-
-#### 4. Alerting & Incident Response
-- Custom PromQL alerts for checkout SLO (e.g., `checkout_failure_ratio`)
-- Alertmanager routing, with runbook_url annotation linking to `docs/runbooks/`
-- Practiced: Trigger failure in checkout, see trace in Tempo showing `kafka` latency, logs in Loki showing exception, metric burning
 
 ---
+
 ### Local Ingress Routing (`*.local`)
 
-Instead of relying solely on `kubectl port-forward`, this lab configures Traefik ingress routes mapped via local host domains. To access services directly in your browser, ensure your local `/etc/hosts` (or `C:\Windows\System32\drivers\etc\hosts` on Windows) includes the following mappings pointing to your k3d load balancer IP (`127.0.0.1`):
+Instead of relying solely on `kubectl port-forward`, this lab configures Traefik ingress routes mapped via local host domains. To access services directly in your browser, update your local `/etc/hosts` file (`C:\Windows\System32\drivers\etc\hosts` on Windows) with the following mappings pointing to `127.0.0.1`:
 
 ```text
 127.0.0.1 grafana.local
@@ -183,7 +169,7 @@ Ensure you have the following installed on your development environment:
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [Argo CD CLI](https://www.google.com/search?q=https://argo-cd.readthedocs.io/en/stable/cli_usage/)
 * **kubeseal** (CLI tool for Bitnami Sealed Secrets encryption)
-* *Note for Windows users:* If installing via Chocolatey, use `choco install sealed-secrets` (the package name is `sealed-secrets`, not `kubeseal`).
+* *Note for Windows users:* Install via Chocolatey using `choco install sealed-secrets` (the package name is `sealed-secrets`, not `kubeseal`).
 
 
 
@@ -206,8 +192,6 @@ terraform apply
 
 To handle component dependencies securely in a true GitOps workflow (ensuring MinIO and its credentials exist before backends like Loki and Tempo deploy), we use Bitnami's **Sealed Secrets** combined with native Argo CD **Sync Waves (`sync-wave`)**.
 
-Instead of saving plaintext credentials directly in Git, we generate standard secrets locally and seal them into custom `SealedSecret` resources that are safe to commit.
-
 ##### Step A: Create and Encrypt the MinIO Secret Locally
 
 1. Create a standard plaintext secret manifest locally (`minio-secret.yaml`) and ensure it is added to your `.gitignore` so it is **never committed** to GitHub:
@@ -225,7 +209,7 @@ stringData:
 ```
 
 
-2. Encrypt the secret using `kubeseal` (this communicates directly with the running K3d cluster to fetch the cluster's public encryption key):
+2. Encrypt the secret using `kubeseal` (communicates directly with the running K3d cluster to fetch the public key):
 ```bash
 kubeseal --format=yaml -f minio-secret.yaml -w apps/monitoring/minio-sealed-secret.yaml --controller-name sealed-secrets --controller-namespace kube-system
 
@@ -235,7 +219,7 @@ kubeseal --format=yaml -f minio-secret.yaml -w apps/monitoring/minio-sealed-secr
 
 ##### Step B: Create and Encrypt the Slack Webhook Secret Locally
 
-1. Similarly, create a plaintext secret for Slack alerting integration (`alertmanager-slack.yaml`) locally and add it to `.gitignore`:
+1. Create a plaintext secret for Slack alerting integration (`alertmanager-slack.yaml`) locally and add it to `.gitignore`:
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -257,13 +241,13 @@ kubeseal --format=yaml -f alertmanager-slack.yaml -w apps/monitoring/sealed-aler
 
 
 
-When Argo CD syncs these sealed resources to the cluster, the in-cluster `sealed-secrets` controller safely decrypts them back into standard Kubernetes secrets automatically.
+When Argo CD syncs these sealed resources, the in-cluster `sealed-secrets` controller automatically decrypts them into standard Kubernetes secrets.
 
 ---
 
 #### 3. Access the Services via Ingress
 
-Once your hosts file is updated and services are running, you can access your stack directly via browser:
+Once your hosts file is updated and services are running, access your stack directly in your browser:
 
 * **Grafana Dashboard:** `[http://grafana.local](http://grafana.local)`
 * **Prometheus UI:** `[http://prometheus.local](http://prometheus.local)`
@@ -283,8 +267,9 @@ Once your hosts file is updated and services are running, you can access your st
 
 ### For Recruiters / Interviewers
 
-This is not a Helm install demo. It's a **GitOps + SRE lab** showing:
-- How to build local env that mirrors prod EKS patterns
-- How to debug Argo CD sync failures (SharedResource, invalid patch)
-- How observability (logs/metrics/traces) ties to SLOs and runbooks
-- Production thinking (PDBs, resource limits, policy-as-code)
+This is not just a standard Helm install demo. It is a comprehensive **GitOps + SRE lab** demonstrating:
+
+* Building local environments that accurately mirror production EKS patterns.
+* Debugging and handling real-world Argo CD synchronization edge cases.
+* Bridging full-stack observability (logs, metrics, and traces) directly to actionable SLOs and runbooks.
+* Enterprise readiness via production thinking (PDBs, resource constraints, and secure secret management).
