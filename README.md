@@ -18,8 +18,6 @@ A production-grade, local GitOps observability lab running on **K3d (Kubernetes 
 
 Production Mapping → AWS EKS (Managed K8s Multi-AZ • S3 • CloudWatch • IAM • VPC) below row.
 
-> Production Hardening (PDBs, Resource Limits) is deployed via GitOps as `hardening-app.yaml` - belongs to Diagram 1, not data flow.
-
 ---
 
 ### Diagram 2 - Observability & SRE Flow (Validated + Slack + Runbook)
@@ -51,6 +49,7 @@ flowchart LR
     AM -- "webhook + runbook_url" --> Slack["Slack<br/>#alerts-observability<br/>@sre-oncall"]
     Slack -- "runbook_url annotation<br/>docs/runbooks/checkout-slo-burning.md" --> Runbook["Runbook<br/>SLO Burn-down Steps"]
     Runbook -.-> Grafana
+```
 ---
 
 ### Architecture Overview
