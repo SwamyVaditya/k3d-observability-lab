@@ -3,6 +3,55 @@
 A production-grade, local GitOps observability lab running on **K3d (Kubernetes in Docker)**, orchestrated declaratively via **Terraform** and continuously synced using **Argo CD (App-of-Apps pattern)**.
 
 ---
+## Architecture
+
+### Diagram 1 - GitOps Workflow (with Production Hardening)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/diagram1_darl.png">
+  <source media="(prefers-color-scheme: light)" srcset="./docs/images/diagram1_light.png">
+  <img alt="Diagram 1 - GitOps Workflow - k3d-observability-lab - Argo CD App-of-Apps with 8 apps including hardening" src="./docs/images/diagram1_light.png">
+</picture>
+
+**Flow:** GitHub (main) → Terraform (bootstrap/main.tf provisions k3d + Argo CD) → K3d Cluster → Argo CD Root App (App-of-Apps) 
+→ Horizontal distribution bar → 8 apps in single row: otel-demo (11 microservices) • prometheus • dashboards • alloy • loki • tempo • minio • hardening-app.yaml (PDBs + Resource Limits + Kyverno policies)
+
+Production Mapping → AWS EKS (Managed K8s Multi-AZ • S3 • CloudWatch • IAM • VPC) below row.
+
+> Production Hardening (PDBs, Resource Limits) is deployed via GitOps as `hardening-app.yaml` - belongs to Diagram 1, not data flow.
+
+---
+
+### Diagram 2 - Observability & SRE Flow (Validated + Slack + Runbook)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/diagram2_dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="./docs/images/diagram2_light.png">
+  <img alt="Diagram 2 - Observability & SRE Flow - OpenTelemetry Demo OTLP to Alloy to Loki Tempo Prometheus to Grafana to Alertmanager Slack Runbook" src="./docs/images/diagram2_light.png">
+</picture>
+
+**Flow:**
+```mermaid
+flowchart LR
+    OTel["OpenTelemetry Demo<br/>frontend • checkout • cart • kafka<br/>Emitting OTLP"] -- OTLP --> Alloy["Grafana Alloy Collector<br/>OTel Receiver • Log Tailer"]
+
+    Alloy --> Distrib((Distribution Bar))
+    Distrib --> Loki["Loki<br/>Logs API"]
+    Distrib --> Tempo["Tempo<br/>Traces API"]
+    Distrib --> Prom["Prometheus<br/>Metrics TSDB"]
+
+    Loki -- "stores chunks<br/>S3 Put/Get" --> MinIO_Loki[("MinIO<br/>Bucket: loki")]
+    Tempo -- "stores blocks<br/>S3 Put/Get" --> MinIO_Tempo[("MinIO<br/>Bucket: tempo")]
+
+    Loki --> Grafana["Grafana Dashboard<br/>Logs | Traces | Metrics"]
+    Tempo --> Grafana
+    Prom --> Grafana
+
+    Prom -- "firing: CheckoutSLOBurning" --> AM["Alertmanager<br/>Routing & Silencing"]
+    AM -- "webhook + runbook_url" --> Slack["Slack<br/>#alerts-observability<br/>@sre-oncall"]
+    Slack -- "runbook_url annotation<br/>docs/runbooks/checkout-slo-burning.md" --> Runbook["Runbook<br/>SLO Burn-down Steps"]
+    Runbook -.-> Grafana
+---
 
 ### Architecture Overview
 
