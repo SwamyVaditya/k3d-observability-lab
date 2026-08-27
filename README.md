@@ -2,7 +2,7 @@
 
 ![GitOps](https://img.shields.io/badge/GitOps-ArgoCD%20App--of--Apps-purple?style=flat-square)
 ![LGTM](https://img.shields.io/badge/Observability-LGTM%20%2B%20OTel-green?style=flat-square)
-![K3d](https://img.shields.io/badge/Cluster-K3d%20%2B%20EKS%20Ready-orange?style=flat-square)
+![K3d](https://img.shields.io/badge/Cluster-K3d%20%2B%20EKS%20Adaptability-orange?style=flat-square)
 ![SRE](https://img.shields.io/badge/SRE%20Exercises-7%20scenarios-blue?style=flat-square)
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-623CE4?style=flat-square)
 
@@ -314,6 +314,20 @@ Why this stack, not alternatives - and how it maps to EKS.
 | **Runbooks** | MTTR - `runbook_url` in alert → 5-step standardized response |
 
 Full decision log with trade-offs & alternatives: [docs/key-decisions.md](./docs/key-decisions.md)
+
+---
+
+
+## 📐 Architecture One-Pager
+
+Recruiter / interviewer summary - diagrams + decisions + failure modes + EKS mapping.
+
+Full: [docs/architecture.md](./docs/architecture.md)
+
+- Diagrams: GitOps App-of-Apps (8 apps) + Observability Flow (final corrected light mode with horizontal line)
+- Components table: Provisioning → GitOps → Observability → SRE
+- Failure modes: 7 scenarios mapped to Diagram 2
+- Production mapping: K3d → can be adapted to EKS (same manifests)
 
 ---
 
