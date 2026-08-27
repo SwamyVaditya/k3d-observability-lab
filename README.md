@@ -294,7 +294,7 @@ kubectl cordon k3d-observability-lab-agent-0
 kubectl drain k3d-observability-lab-agent-0 --ignore-daemonsets --delete-emptydir-data
 # Should block when only 1 cart left due to PDB
 kubectl uncordon k3d-observability-lab-agent-0
-
+```
 ---
 
 ### For Recruiters / Interviewers
