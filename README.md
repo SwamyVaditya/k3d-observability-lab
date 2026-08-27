@@ -40,8 +40,8 @@ Most observability demos show metrics. This lab shows **how SREs work**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/diagram2_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="./docs/images/diagram2_light.png">
-  <img alt="Diagram 2 - Observability & SRE Flow - OpenTelemetry Demo OTLP to Alloy to Loki Tempo Prometheus to Grafana to Alertmanager Slack Runbook" src="./docs/images/diagram2_light.png">
+  <source media="(prefers-color-scheme: light)" srcset="./docs/images/diagram2_light_new.png">
+  <img alt="Diagram 2 - Observability & SRE Flow - OpenTelemetry Demo OTLP to Alloy to Loki Tempo Prometheus to Grafana to Alertmanager Slack Runbook" src="./docs/images/diagram2_light_new.png">
 </picture>
 
 ```mermaid
