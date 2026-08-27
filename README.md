@@ -303,7 +303,7 @@ Why this stack, not alternatives - and how it maps to EKS.
 
 | Decision | Why |
 |----------|-----|
-| **K3d** | Fast local K8s (1S2A) for PDB/drain tests - app patterns transfer, infra needs EKS modules |
+| **K3d** | Local K8s with 1 server + 2 agents - tests voluntary disruption, patterns transfer to EKS |
 | **Terraform** | Declarative bootstrap + state - one `apply` = full env |
 | **Argo CD App-of-Apps** | Scalable GitOps - root discovers 8 apps, Git push → auto-sync 30s |
 | **Alloy** | Single collector for OTLP + logs + metrics vs 3 separate |
