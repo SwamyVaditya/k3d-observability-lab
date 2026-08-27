@@ -1,6 +1,12 @@
 # k3d-observability-lab
 
-A production-grade, local GitOps observability lab running on **K3d (Kubernetes in Docker)**, orchestrated declaratively via **Terraform** and continuously synced using **Argo CD (App-of-Apps pattern)**.
+![GitOps](https://img.shields.io/badge/GitOps-ArgoCD%20App--of--Apps-purple?style=flat-square)
+![LGTM](https://img.shields.io/badge/Observability-LGTM%20%2B%20OTel-green?style=flat-square)
+![K3d](https://img.shields.io/badge/Cluster-K3d%20%2B%20EKS%20Ready-orange?style=flat-square)
+![SRE](https://img.shields.io/badge/SRE%20Exercises-7%20scenarios-blue?style=flat-square)
+![Terraform](https://img.shields.io/badge/IaC-Terraform-623CE4?style=flat-square)
+
+A production-oriented, local GitOps observability lab running on **K3d (Kubernetes in Docker)**, orchestrated declaratively via **Terraform** and continuously synced using **Argo CD (App-of-Apps pattern)**.
 
 Local Kubernetes (K3d) cluster provisioned with Terraform, running **OpenTelemetry Demo** as the SUT, with full **LGTM stack (Loki, Grafana, Tempo, Prometheus)** + **Grafana Alloy**, all deployed via **Argo CD App-of-Apps**. Built to practice SRE, not just monitoring.
 
@@ -12,7 +18,7 @@ Most observability demos show metrics. This lab shows **how SREs work**:
 
 * **End-to-End Telemetry:** App emits OTel traces/metrics/logs → Alloy collects → Loki/Tempo/Prometheus store → Grafana visualizes → Prometheus alerts → Runbook tells you what to do → PDBs/ResourceLimits keep it alive.
 * **GitOps Automation:** Ensures everything is declarative, drift-corrected, and fully reproducible.
-* **Designed for AWS EKS migration:** Local K3d patterns (Terraform + Argo CD + Helm values) map 1:1 to enterprise cloud environments.
+* **Designed for AWS EKS migration in mind:** the GitOps, Terraform, Helm, observability, and SRE patterns are intentionally structured so they can be adapted to managed Kubernetes environments such as Amazon EKS.
 
 ---
 
@@ -40,23 +46,19 @@ Most observability demos show metrics. This lab shows **how SREs work**:
 
 ```mermaid
 flowchart LR
-    OTel["OpenTelemetry Demo<br/>frontend • checkout • cart • kafka<br/>Emitting OTLP"] -- OTLP --> Alloy["Grafana Alloy Collector<br/>OTel Receiver • Log Tailer"]
-
-    Alloy --> Distrib((Distribution Bar))
-    Distrib --> Loki["Loki<br/>Logs API"]
-    Distrib --> Tempo["Tempo<br/>Traces API"]
-    Distrib --> Prom["Prometheus<br/>Metrics TSDB"]
-
+    OTel["OpenTelemetry Demo<br/>frontend • checkout • cart • kafka<br/>Emitting OTLP"] -- OTLP --> Alloy["Grafana Alloy<br/>OTel Receiver • Log Tailer"]
+    Alloy --> HLine[" "]
+    HLine --- Loki["Loki<br/>Logs API"]
+    HLine --- Tempo["Tempo<br/>Traces API"]
+    HLine --- Prom["Prometheus<br/>Metrics TSDB"]
     Loki -- "stores chunks<br/>S3 Put/Get" --> MinIO_Loki[("MinIO<br/>Bucket: loki")]
     Tempo -- "stores blocks<br/>S3 Put/Get" --> MinIO_Tempo[("MinIO<br/>Bucket: tempo")]
-
-    Loki --> Grafana["Grafana Dashboard<br/>Logs | Traces | Metrics"]
-    Tempo --> Grafana
-    Prom --> Grafana
-
+    Loki -. logs .-> Grafana["Grafana Dashboard<br/>Logs | Traces | Metrics"]
+    Tempo -. traces .-> Grafana
+    Prom -. metrics .-> Grafana
     Prom -- "firing: CheckoutSLOBurning" --> AM["Alertmanager<br/>Routing & Silencing"]
     AM -- "webhook + runbook_url" --> Slack["Slack<br/>#alerts-observability<br/>@sre-oncall"]
-    Slack -- "runbook_url annotation<br/>docs/runbooks/checkout-slo-burning.md" --> Runbook["Runbook<br/>SLO Burn-down Steps"]
+    Slack --> Runbook["Runbook<br/>SLO Burn-down"]
     Runbook -.-> Grafana
 
 ```
@@ -69,7 +71,7 @@ flowchart LR
 k3d-observability-lab/
 ├── .github/
 │   └── workflows/
-│       └── ci.yaml                     # GitHub Actions CI/CD pipeline
+│       └── ci.yaml                     # GitHub Actions CI pipeline
 ├── clusters/
 │   └── observability-cluster.yaml      # K3d multi-node cluster definition
 ├── bootstrap/                        
@@ -251,7 +253,7 @@ Once your hosts file is updated and services are running, access your stack dire
 
 * **Grafana Dashboard:** `[http://grafana.local](http://grafana.local)`
 * **Prometheus UI:** `[http://prometheus.local](http://prometheus.local)`
-* **Argo CD UI:** `[http://argocd.local](http://argocd.local)` *(Default Username: `admin`, Password: `test1234` or check your Terraform outputs)*
+* **Argo CD UI:** `[http://argocd.local](http://argocd.local)` *(Argo CD UI: http://argocd.local — credentials are configured during bootstrap; see Terraform configuration/output instructions.)*
 * **MinIO Console:** `[http://minio-console.local](http://minio-console.local)`
 * **OTel Demo Shop:** `[http://shop.local](http://shop.local)`
 
@@ -262,6 +264,36 @@ Once your hosts file is updated and services are running, access your stack dire
 1. Modify any application Helm values file, sealed secret, or ingress route under `apps/monitoring/`.
 2. Commit and push your changes to your remote GitHub repository (`main` branch).
 3. Argo CD automatically detects drift via its automated sync policy (`prune: true`, `selfHeal: true`) and rolls out updates live into your local K3d cluster.
+
+---
+
+## 🧪 SRE Failure Scenarios & Exercises
+
+Practice production incidents hands-on - each maps to your LGTM stack.
+
+| Scenario | Incident Pattern | What You Practice |
+|----------|------------------|------------------|
+| [Scenario 1 - Checkout SLO Burn](./docs/failure-scenarios.md#scenario-1--checkout-error-rate-increases-slo-burn) | SLO burn, alert firing | Metrics → Traces → Logs correlation |
+| [Scenario 2 - Pod Unhealthy](./docs/failure-scenarios.md#scenario-2--pod-becomes-unhealthy-readiness-probe-failure) | Readiness probe failure | Endpoint removal, diagnosis |
+| [Scenario 3 - Node Disruption](./docs/failure-scenarios.md#scenario-3--node-disruption-pdb-protects-critical-workloads) | Voluntary disruption | PDB `minAvailable: 1` protection |
+| [Scenario 4 - GitOps Drift](./docs/failure-scenarios.md#scenario-4--gitops-drift-manual-change--self-heal) | Manual drift | Argo CD self-heal |
+| [Scenario 5 - Git Deployment](./docs/failure-scenarios.md#scenario-5--configuration-deployment-git--ci--argo) | Config promotion | Git → CI → Argo flow |
+| [Scenario 6 - Secret Rotation](./docs/failure-scenarios.md#scenario-6--secret-rotation-your-actual-bug) | Secret rotation | SealedSecrets |
+| [Scenario 7 - Resource Exhaustion](./docs/failure-scenarios.md#scenario-7--resource-exhaustion-limit-enforcement) | Noisy neighbor | Limits + OOMKilled |
+
+> **Full guide:** [docs/failure-scenarios.md](./docs/failure-scenarios.md) - 7 exercises with commands, expected artifacts, SRE lessons.
+
+**Quick start:**
+```bash
+# Scenario 1 - trigger SLO burn
+kubectl -n otel-demo set env deployment/cart OTEL_DEMO_CART_FAILURE_RATE=0.3
+# Watch Grafana grafana.local → Checkout dashboard → Tempo trace → Loki logs → Slack alert
+
+# Scenario 3 - test PDB
+kubectl cordon k3d-observability-lab-agent-0
+kubectl drain k3d-observability-lab-agent-0 --ignore-daemonsets --delete-emptydir-data
+# Should block when only 1 cart left due to PDB
+kubectl uncordon k3d-observability-lab-agent-0
 
 ---
 
