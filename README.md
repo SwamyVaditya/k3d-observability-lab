@@ -297,6 +297,26 @@ kubectl uncordon k3d-observability-lab-agent-0
 ```
 ---
 
+## 🔧 Key Engineering Decisions
+
+Why this stack, not alternatives - and how it maps to EKS.
+
+| Decision | Why |
+|----------|-----|
+| **K3d** | Fast reproducible local K8s (1 Server, 2 Agents) - 60s boot vs 10m EKS |
+| **Terraform** | Declarative bootstrap + state - one `apply` = full env |
+| **Argo CD App-of-Apps** | Scalable GitOps - root discovers 8 apps, Git push → auto-sync 30s |
+| **Alloy** | Single collector for OTLP + logs + metrics vs 3 separate |
+| **Loki/Tempo/Prometheus** | Separate backends - independent scaling, S3 native |
+| **MinIO** | S3-compatible locally - same API as prod S3 buckets |
+| **Sealed Secrets** | Git-safe - commit encrypted, controller decrypts, sync-waves |
+| **PDBs** | Availability - `minAvailable: 1` protects checkout during drain |
+| **Runbooks** | MTTR - `runbook_url` in alert → 5-step standardized response |
+
+Full decision log with trade-offs & alternatives: [docs/key-decisions.md](./docs/key-decisions.md)
+
+---
+
 ### For Recruiters / Interviewers
 
 This is not just a standard Helm install demo. It is a comprehensive **GitOps + SRE lab** demonstrating:
