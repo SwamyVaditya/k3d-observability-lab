@@ -18,7 +18,7 @@ Most observability demos show metrics. This lab shows **how SREs work**:
 
 * **End-to-End Telemetry:** App emits OTel traces/metrics/logs → Alloy collects → Loki/Tempo/Prometheus store → Grafana visualizes → Prometheus alerts → Runbook tells you what to do → PDBs/ResourceLimits keep it alive.
 * **GitOps Automation:** Ensures everything is declarative, drift-corrected, and fully reproducible.
-* **Designed for AWS EKS migration in mind:** the GitOps, Terraform, Helm, observability, and SRE patterns are intentionally structured so they can be adapted to managed Kubernetes environments such as Amazon EKS.
+* **EKS-ready patterns:** GitOps (App-of-Apps), Helm values, PDBs, LGTM correlation, and runbooks transfer to EKS. Infrastructure (VPC CNI, EBS CSI, ALB Controller, IRSA) requires EKS-specific modules - patterns transfer, implementation does not map 1:1.
 
 ---
 
@@ -303,7 +303,7 @@ Why this stack, not alternatives - and how it maps to EKS.
 
 | Decision | Why |
 |----------|-----|
-| **K3d** | Fast reproducible local K8s (1 Server, 2 Agents) - 60s boot vs 10m EKS |
+| **K3d** | Fast local K8s (1S2A) for PDB/drain tests - app patterns transfer, infra needs EKS modules |
 | **Terraform** | Declarative bootstrap + state - one `apply` = full env |
 | **Argo CD App-of-Apps** | Scalable GitOps - root discovers 8 apps, Git push → auto-sync 30s |
 | **Alloy** | Single collector for OTLP + logs + metrics vs 3 separate |
@@ -327,7 +327,7 @@ Full: [docs/architecture.md](./docs/architecture.md)
 - Diagrams: GitOps App-of-Apps (8 apps) + Observability Flow (final corrected light mode with horizontal line)
 - Components table: Provisioning → GitOps → Observability → SRE
 - Failure modes: 7 scenarios mapped to Diagram 2
-- Production mapping: K3d → can be adapted to EKS (same manifests)
+- Production readiness: App layer (GitOps, Helm values, PDBs, LGTM) transfers to EKS; infra layer (networking, storage, LB, IAM) requires EKS modules - no literal 1:1 mapping
 
 ---
 
