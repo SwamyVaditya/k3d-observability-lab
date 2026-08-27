@@ -4,11 +4,11 @@ One-pager for recruiters & SRE interviewers - what it is, why each piece, how it
 
 ## TL;DR (90-sec pitch)
 
-Production-grade **GitOps observability lab** on K3d that can be adapted to EKS.
+Production-grade **GitOps observability lab** on K3d - GitOps and SRE patterns transfer to EKS, infra needs EKS modules.
 
 **Flow:** Git push → Terraform creates K3d (1 Server, 2 Agents) + Argo CD → Argo App-of-Apps discovers 8 apps → OTel Demo (11 microservices) emits OTLP → Alloy collects → Loki (logs) / Tempo (traces) / Prometheus (metrics) store in MinIO S3 → Grafana visualizes with exemplars → Prometheus fires `CheckoutSLOBurning` → Alertmanager → Slack + Runbook → PDBs keep it alive.
 
-**Designed for:** `k3d cluster` → can be adapted to "EKS" → same manifests run in AWS.
+**Designed for:** Practicing GitOps and SRE patterns locally that transfer to managed K8s like EKS (app layer portable, infra layer needs EKS modules).
 
 ## Diagrams
 
@@ -34,9 +34,9 @@ Prometheus --firing: CheckoutSLOBurning--> Alertmanager --webhook+runbook_url-->
 
 | Layer | Component | Role | Why This |
 |-------|-----------|------|----------|
-| **Provisioning** | K3d 1S2A | Local multi-node K8s | 60s boot, tests PDB drain (Kind can't). See [key-decisions.md](./key-decisions.md#k3d) |
-| | Terraform `bootstrap/main.tf` | Declarative bootstrap | One `apply` = K3d + Argo CD. Can be adapted to EKS. |
-| | Traefik `*.local` | Ingress | `grafana.local` etc via `/etc/hosts` - no port-forward, prod-like. |
+| **Provisioning** | K3d (1 server + 2 agents) | Local multi-node K8s | 60s boot, tests PDB drain (Kind single-node can't). See key-decisions.md |
+|  | Terraform `bootstrap/main.tf` | Declarative bootstrap | One `apply` = K3d + Argo CD. App layer transfers to EKS; infra needs VPC/CNI/EBS/ALB modules. |
+|  | Traefik `*.local` | Local ingress | `grafana.local` via `/etc/hosts` - avoids port-forward, similar routing pattern to ALB but not same implementation. |
 | **GitOps** | Argo CD Root App | App-of-Apps | Discovers 8 apps from `apps/monitoring/`. Git push → sync 30s. |
 | | 8 Child Apps | Helm releases | otel-demo (SUT), prometheus, loki, tempo, alloy, minio, dashboards, hardening. |
 | | SealedSecrets | Git-safe secrets | `minio-sealed-secret.yaml` + `sealed-alertmanager-slack.yaml` + sync-waves. |
@@ -93,7 +93,7 @@ Architectural **patterns** transfer, infrastructure **implementation** does not 
 
 It demonstrates:
 - **Build local that can be adapted to managed Kubernetes environments such as Amazon EKS** - Terraform + Argo same pattern
-- **Debug real GitOps failure** - Fixed `SharedResourceWarning 94a0abd` by scoping PDB ownership
+- **Debug real GitOps failure** - Resolved Argo CD `SharedResourceWarning` by isolating PDB ownership to hardening app, preventing dual ownership
 - **Correlate LGTM** - Exemplars linking metric spike → traceID → log exception
 - **Think SRE** - PDBs, limits, `runbook_url`, error budget, Kyverno policy-as-code
 - **Document decisions** - Why K3d vs Kind, Alloy vs OTEL, MinIO S3, anti-decisions
