@@ -253,7 +253,12 @@ Once your hosts file is updated and services are running, access your stack dire
 
 * **Grafana Dashboard:** `[http://grafana.local](http://grafana.local)`
 * **Prometheus UI:** `[http://prometheus.local](http://prometheus.local)`
-* **Argo CD UI:** `[http://argocd.local](http://argocd.local)` *(Argo CD UI: http://argocd.local — credentials are configured during bootstrap; see Terraform configuration/output instructions.)*
+* **Argo CD Login:** `argocd.local` - user `admin`
+Password auto-generated (not committed). Retrieve:
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+``
+
 * **MinIO Console:** `[http://minio-console.local](http://minio-console.local)`
 * **OTel Demo Shop:** `[http://shop.local](http://shop.local)`
 

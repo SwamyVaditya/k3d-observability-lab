@@ -53,13 +53,12 @@ resource "helm_release" "argocd" {
   version = "7.3.0" # Use a stable recent chart version
   timeout = 600
   # Automatically configure server parameters declaratively
-  # argocdServerAdminPassword: Replace with your pre-generated bcrypt hash for your chosen password
+  # No secret.argocdServerAdminPassword - auto-generated for local lab hygiene
+  # Prod EKS uses OIDC SSO, not static admin password
   values = [<<-EOT
       configs:
         params:
           server.insecure: "true"
-        secret:
-          argocdServerAdminPassword: "$2a$12$PAflLdjcvwbMxGd11Z.3kO8ruAYRC/h6W85GMFE21O49QgY8HQEO."
     EOT
   ]
 
