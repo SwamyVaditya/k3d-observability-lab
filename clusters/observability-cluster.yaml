@@ -7,13 +7,24 @@ agents: 2
 image: rancher/k3s:v1.29.6-k3s1 # Pin it, don't use latest
 
 # Expose Kubernetes API on localhost:6443
-# local lab only - binds for docker networking, EKS uses private API endpoint + SGs
 kubeAPI:
-  hostIP: "0.0.0.0"
+  # K1 Fix: localhost only - reduces attack surface
+  # Was 0.0.0.0 (exposes API on all interfaces)
+  # 127.0.0.1 is correct for single-machine lab
+  # EKS prod uses private API endpoint + SGs, not hostIP
+  hostIP: "127.0.0.1"
   hostPort: "6443"
 
-volumes:
-  - volume: k3d-observability-data:/var/lib/rancher/k3s/storage@all
+# No volumes: - ephemeral by default
+# terraform destroy = truly clean, no leftover state
+# Reproducibility: destroy + apply = fresh cluster + fresh MinIO/Loki/Tempo
+# This matches CI / ephemeral lab semantics
+
+# If you need persistence in future for demo data, add back with comment:
+# volumes:
+#   - volume: k3d-observability-data:/var/lib/rancher/k3s/storage@all
+#   BUT then document make clean vs make destroy
+
 
 # Map HTTP and HTTPS for Ingress (Argo CD, sample apps, etc.)
 ports:
