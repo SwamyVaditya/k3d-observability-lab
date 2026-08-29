@@ -58,7 +58,7 @@ resource "helm_release" "argocd" {
   values = [<<-EOT
       configs:
         params:
-          server.insecure: "true"
+          server.insecure: "true" # LOCAL LAB ONLY - Traefik terminates HTTP for *.local, no TLS needed locally. EKS uses ALB + ACM + HTTPS.
     EOT
   ]
 
