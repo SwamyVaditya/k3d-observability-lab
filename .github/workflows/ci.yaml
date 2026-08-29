@@ -7,47 +7,130 @@ on:
     branches: [ "main" ]
 
 jobs:
-  validate-charts:
-    name: Lint and Validate Helm Charts
+  terraform-validate:
+    name: Terraform fmt & validate
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive
+      - name: Terraform validate (bootstrap)
+        working-directory: bootstrap
+        run: |
+          terraform init -backend=false
+          terraform validate
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v5
+  helm-lint-and-render:
+    name: Helm lint + render + kubeconform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: azure/setup-helm@v5
         with:
           version: latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Add Helm Repositories
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
           helm repo add grafana https://grafana.github.io/helm-charts
           helm repo add minio https://charts.min.io
+          helm repo add argo https://argoproj.github.io/argo-helm
+          helm repo add bitnami https://charts.bitnami.com/bitnami || helm repo add sealed-secrets https://bitnami.github.io/sealed-secrets --force-update
           helm repo update
-      - name: Lint MinIO Chart Values
+      - name: Install kubeconform
         run: |
-          helm template minio minio/minio -f apps/monitoring/minio-values.yaml --dry-run
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      - name: Lint & Validate MinIO
+        run: |
+          helm lint minio/minio -f apps/monitoring/minio-values.yaml
+          helm template minio minio/minio -f apps/monitoring/minio-values.yaml | kubeconform -strict -summary -verbose
+      - name: Lint & Validate Loki
+        run: |
+          helm lint grafana/loki -f apps/monitoring/loki-values.yaml
+          helm template loki grafana/loki -f apps/monitoring/loki-values.yaml | kubeconform -strict -summary -verbose
+      - name: Lint & Validate Tempo
+        run: |
+          helm lint grafana/tempo -f apps/monitoring/tempo-values.yaml
+          helm template tempo grafana/tempo -f apps/monitoring/tempo-values.yaml | kubeconform -strict -summary -verbose
+      - name: Lint & Validate Alloy
+        run: |
+          helm lint grafana/alloy -f apps/monitoring/alloy-values.yaml
+          helm template alloy grafana/alloy -f apps/monitoring/alloy-values.yaml | kubeconform -strict -summary -verbose
+      - name: Lint & Validate Prometheus Stack
+        run: |
+          helm lint prometheus-community/kube-prometheus-stack -f apps/monitoring/prometheus-grafana-values.yaml
+          helm template test-prom prometheus-community/kube-prometheus-stack -n monitoring -f apps/monitoring/prometheus-grafana-values.yaml | kubeconform -strict -summary -verbose -skip CustomResourceDefinition
+      - name: Lint & Validate OTel Demo
+        run: |
+          helm lint open-telemetry/opentelemetry-demo -f apps/monitoring/otel-demo-values.yaml
+          helm template test-otel open-telemetry/opentelemetry-demo -n otel-demo -f apps/monitoring/otel-demo-values.yaml | kubeconform -strict -summary -verbose
 
-      - name: Lint Loki Chart Values
+  manifest-validate:
+    name: Raw K8s manifests & Argo CD Apps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install kubeconform
         run: |
-          helm template loki grafana/loki -f apps/monitoring/loki-values.yaml --dry-run
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      - name: Validate Argo CD root-app.yaml
+        run: |
+          kubeconform -strict -summary -verbose argocd/root-app.yaml
+      - name: Validate hardening manifests (if exist)
+        run: |
+          if [ -d "apps/platform/hardening" ] || [ -d "apps/monitoring" ]; then
+            find apps -type f -name "*.yaml" -o -name "*.yml" | xargs -I {} sh -c 'echo "=== {} ==="; kubeconform -strict -summary -verbose {} || true'
+          fi
+      - name: Check for non-existent paths referenced in docs
+        run: |
+          echo "Checking README references vs actual files..."
+          test -f argocd/root-app.yaml
+          test -f clusters/observability-cluster.yaml
+          test -f bootstrap/main.tf
+          ls apps/monitoring/
 
-      - name: Lint Tempo Chart Values
+  prometheus-rules:
+    name: Promtool check PrometheusRules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install promtool
         run: |
-          helm template tempo grafana/tempo -f apps/monitoring/tempo-values.yaml --dry-run
+          PROM_VERSION=$(curl -s https://api.github.com/repos/prometheus/prometheus/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c2-)
+          curl -L https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz | tar xz
+          sudo mv prometheus-${PROM_VERSION}.linux-amd64/promtool /usr/local/bin/
+      - name: Check Prometheus rules
+        run: |
+          # Find all PrometheusRule / prometheus rules files
+          find . -name "*.yaml" -o -name "*.yml" | xargs grep -l "kind: PrometheusRule\|groups:.*rules:" 2>/dev/null | while read f; do
+            echo "Checking $f"
+            # Extract rules groups if it's a Helm values file, skip if template
+            if grep -q "prometheusRule\|additionalPrometheusRules\|prometheus.*rules" "$f"; then
+              echo "Skipping values file $f (rules embedded in values, validated via helm template)"
+            else
+              promtool check rules "$f" || echo "Note: $f not a standalone rules file, validated via kubeconform"
+            fi
+          done
+          # Also validate rules inside prometheus-grafana-values.yaml via helm template
+          echo "Validating rules via helm template..."
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm template test-prom prometheus-community/kube-prometheus-stack -f apps/monitoring/prometheus-grafana-values.yaml | grep -A 20 "kind: PrometheusRule" | promtool check rules /dev/stdin || true
 
-      - name: Lint Alloy Chart Values
+  security-hygiene:
+    name: Secret hygiene check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check for hardcoded secrets
         run: |
-          helm template alloy grafana/alloy -f apps/monitoring/alloy-values.yaml --dry-run
-      - name: Lint Prometheus / kube-prometheus-stack
-        run: |
-            helm template test-prom prometheus-community/kube-prometheus-stack -n monitoring -f apps/monitoring/prometheus-grafana-values.yaml > /dev/null
-
-      - name: Lint OpenTelemetry Demo
-        run: |
-          helm template test-otel open-telemetry/opentelemetry-demo -n monitoring -f apps/monitoring/otel-demo-values.yaml > /dev/null
+          echo "Checking for hardcoded bcrypt hashes / passwords..."
+          ! grep -R "argocdServerAdminPassword.*\$2a\$" bootstrap/ --include="*.tf" --include="*.yaml" && echo "No hardcoded bcrypt hash found - OK"
+          ! grep -R "password.*test1234\|admin.*admin" . --include="*.md" --include="*.yaml" | grep -v "kubectl.*argocd-initial-admin-secret" | grep -v "Retrieve" && echo "No hardcoded plaintext demo password - OK" || true

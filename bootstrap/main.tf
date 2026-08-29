@@ -1,7 +1,7 @@
 terraform {
   required_version = ">= 1.5.0"
   required_providers {
-    kubectl = { source = "gavinbunney/kubectl", version = "~> 1.14.0" }
+  #  kubectl = { source = "gavinbunney/kubectl", version = "~> 1.14.0" }
     helm = { source = "hashicorp/helm", version = "~> 2.12.0" }
   }
 }
@@ -15,12 +15,18 @@ resource "null_resource" "k3d_cluster" {
 
   # 1. Provision Cluster via Local Exec (Cleanest wrapper for K3d in Terraform)
   provisioner "local-exec" {
-    command = "k3d cluster create --config ../clusters/observability-cluster.yaml --timeout 300s"
+    command = <<EOT
+      if! k3d cluster list | grep -q observability-cluster; then
+        k3d cluster create --config../clusters/observability-cluster.yaml --timeout 300s
+      else
+        echo "Cluster already exists, skipping create"
+      fi
+    EOT
   }
 
   provisioner "local-exec" {
     when = destroy
-    command = "k3d cluster delete observability-cluster"
+    command = "k3d cluster delete observability-cluster || true"
   }
 }
 
