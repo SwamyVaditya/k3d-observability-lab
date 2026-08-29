@@ -1,7 +1,7 @@
 terraform {
   required_version = ">= 1.5.0"
   required_providers {
-  #  kubectl = { source = "gavinbunney/kubectl", version = "~> 1.14.0" }
+    #  kubectl = { source = "gavinbunney/kubectl", version = "~> 1.14.0" }
     helm = { source = "hashicorp/helm", version = "~> 2.12.0" }
   }
 }
@@ -25,7 +25,7 @@ resource "null_resource" "k3d_cluster" {
   }
 
   provisioner "local-exec" {
-    when = destroy
+    when    = destroy
     command = "k3d cluster delete observability-cluster || true"
   }
 }
@@ -33,7 +33,7 @@ resource "null_resource" "k3d_cluster" {
 # 2. Deploy Argo CD using the official Helm chart
 provider "helm" {
   kubernetes {
-    config_path = pathexpand("~/.kube/config") # Connects to the newly created K3d cluster
+    config_path    = pathexpand("~/.kube/config") # Connects to the newly created K3d cluster
     config_context = "k3d-observability-cluster"
   }
 }
@@ -51,13 +51,13 @@ resource "null_resource" "helm_repositories" {
 
 # Argo CD Helm Release configured to wait for repository initialization
 resource "helm_release" "argocd" {
-  name = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart = "argo-cd"
-  namespace = "argocd"
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = "argocd"
   create_namespace = true
-  version = "7.3.0" # Use a stable recent chart version
-  timeout = 600
+  version          = "7.3.0" # Use a stable recent chart version
+  timeout          = 600
   # Automatically configure server parameters declaratively
   # No secret.argocdServerAdminPassword - auto-generated for local lab hygiene
   # Prod EKS uses OIDC SSO, not static admin password
@@ -103,18 +103,18 @@ resource "null_resource" "root_app" {
   }
 
   provisioner "local-exec" {
-    when = destroy
+    when    = destroy
     command = "kubectl delete -f ../argocd/root-app.yaml --ignore-not-found=true || true"
   }
 }
 
 # 4. Deploy Sealed Secrets Controller using Helm
 resource "helm_release" "sealed_secrets" {
-  name = "sealed-secrets"
+  name       = "sealed-secrets"
   repository = "https://bitnami.github.io/sealed-secrets"
-  chart = "sealed-secrets"
-  version = "2.16.1"
-  namespace = "kube-system"
-  timeout = 300
+  chart      = "sealed-secrets"
+  version    = "2.16.1"
+  namespace  = "kube-system"
+  timeout    = 300
   depends_on = [null_resource.wait_for_argocd_crds] # don't run in parallel with argocd
 }
