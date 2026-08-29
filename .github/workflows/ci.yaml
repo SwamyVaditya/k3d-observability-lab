@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: 1.5.0
+          terraform_version: 1.14.6
       - name: Terraform fmt check
         run: |
           # Only check bootstrap, not whole repo (README examples break recursive fmt)
