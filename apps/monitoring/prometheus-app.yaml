@@ -6,7 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  project: default
+  project: observability-lab
   sources:
     # Source 1: The remote Prometheus Helm chart repository
     - chart: kube-prometheus-stack

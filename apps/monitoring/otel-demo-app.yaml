@@ -6,7 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  project: default
+  project: observability-lab
   sources:
     # Source 1: The remote OpenTelemetry Helm chart repository
     - chart: opentelemetry-demo

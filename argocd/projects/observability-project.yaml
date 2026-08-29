@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: observability-lab
+  namespace: argocd
+  # G2 Fix: Dedicated project instead of default - least privilege
+spec:
+  description: "Observability lab - monitoring stack only"
+
+  # Only this repo allowed
+  sourceRepos:
+        - "https://github.com/SwamyVaditya/k3d-observability-lab"
+        - "https://github.com/SwamyVaditya/k3d-observability-lab.git"
+
+  # Only allowed namespaces
+  destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+    - namespace: otel-demo
+      server: https://kubernetes.default.svc
+
+  # Whitelist resource types (deny dangerous cluster-wide mutating resources)
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: apps
+      kind: "*"
+    - group: monitoring.coreos.com
+      kind: "*"
+    - group: grafana.integreatly.org
+      kind: "*"
+    - group: loki.grafana.com
+      kind: "*"
+
+  # Orphaned resources handling
+  orphanedResources:
+    warn: true

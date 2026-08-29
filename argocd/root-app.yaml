@@ -6,7 +6,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: observability-lab  # Was default
   source:
     repoURL: 'https://github.com/swamyvaditya/k3d-observability-lab.git' # Update with your actual repo URL
     targetRevision: main

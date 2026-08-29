@@ -6,7 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  project: default
+  project: observability-lab
   sources:
     # Source 1: The Loki / Grafana helm chart
     - chart: loki

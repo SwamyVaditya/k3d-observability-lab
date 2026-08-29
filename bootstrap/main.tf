@@ -95,10 +95,23 @@ resource "null_resource" "wait_for_argocd_crds" {
   depends_on = [helm_release.argocd]
 }
 
+resource "null_resource" "argocd_project" {
+  depends_on = [null_resource.wait_for_argocd_crds]
+
+  provisioner "local-exec" {
+    command = "kubectl apply -f ../argocd/projects/observability-project.yaml"
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "kubectl delete -f ../argocd/projects/observability-project.yaml --ignore-not-found=true || true"
+  }
+}
+
 
 # 3. Apply the Root GitOps Application
 resource "null_resource" "root_app" {
-  depends_on = [null_resource.wait_for_argocd_crds]
+  depends_on = [null_resource.argocd_project]
 
   provisioner "local-exec" {
     command = "kubectl apply -f ../argocd/root-app.yaml"
