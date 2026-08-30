@@ -253,11 +253,13 @@ Once your hosts file is updated and services are running, access your stack dire
 
 * **Grafana Dashboard:** `[http://grafana.local](http://grafana.local)`
 * **Prometheus UI:** `[http://prometheus.local](http://prometheus.local)`
-* **Argo CD Login:** `argocd.local` - user `admin`
+* **Argo CD Login (auto-generated password):** `argocd.local` - user `admin`
 Password auto-generated (not committed). Retrieve:
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
+**URL: http://argocd.local**
+**username: admin**
 
 * **MinIO Console:** `[http://minio-console.local](http://minio-console.local)`
 * **OTel Demo Shop:** `[http://shop.local](http://shop.local)`

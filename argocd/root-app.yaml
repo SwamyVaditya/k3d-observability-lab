@@ -9,7 +9,7 @@ spec:
   project: observability-lab  # Was default
   source:
     repoURL: 'https://github.com/swamyvaditya/k3d-observability-lab.git' # Update with your actual repo URL
-    targetRevision: main
+    targetRevision: main # Intentional: continuous delivery demo. Prod = pinned tag/commit
     path: apps/monitoring
   destination:
     server: 'https://kubernetes.default.svc'

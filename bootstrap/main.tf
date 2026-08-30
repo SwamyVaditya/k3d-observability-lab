@@ -65,6 +65,9 @@ resource "null_resource" "helm_repositories" {
 # Argo CD Helm Release configured to wait for repository initialization
 # No static admin password - auto-generated secret for local hygiene
 # Retrieve: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+# server.insecure=true is INTENTIONAL for local lab only - Traefik HTTP for *.local domains
+# EKS prod: ALB Controller + ACM TLS + HTTPS + Cognito/OIDC
+# Fix: No committed hash - auto-generated secret per bootstrap, not same credential every rebuild
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
@@ -79,7 +82,10 @@ resource "helm_release" "argocd" {
   values = [<<-EOT
       configs:
         params:
-          server.insecure: "true" # LOCAL LAB ONLY - Traefik terminates HTTP for *.local, no TLS needed locally. EKS uses ALB + ACM + HTTPS.
+          # Local lab only - HTTP via Traefik for *.local
+          # mitigates: kubeAPI bound to 127.0.0.1, not 0.0.0.0
+          # Prod: server.insecure=false + TLS + ALB + ACM
+          server.insecure: "true" 
     EOT
   ]
 
