@@ -37,9 +37,9 @@ resource "null_resource" "k3d_cluster" {
   }
 
   provisioner "local-exec" {
-    when    = destroy
-    command = "k3d cluster delete observability-cluster"
-     on_failure = continue
+    when       = destroy
+    command    = "k3d cluster delete observability-cluster"
+    on_failure = continue
   }
 }
 
@@ -181,8 +181,8 @@ resource "null_resource" "argocd_project" {
   }
 
   provisioner "local-exec" {
-    when    = destroy
-    command = "kubectl delete -f ${path.module}/../argocd/projects/observability-project.yaml --ignore-not-found=true"
+    when       = destroy
+    command    = "kubectl delete -f ${path.module}/../argocd/projects/observability-project.yaml --ignore-not-found=true"
     on_failure = continue
   }
 }
@@ -206,8 +206,8 @@ resource "null_resource" "root_app" {
   }
 
   provisioner "local-exec" {
-    when    = destroy
-    command = "kubectl delete -f ${path.module}/../argocd/root-app.yaml --ignore-not-found=true"
+    when       = destroy
+    command    = "kubectl delete -f ${path.module}/../argocd/root-app.yaml --ignore-not-found=true"
     on_failure = continue
   }
 }
