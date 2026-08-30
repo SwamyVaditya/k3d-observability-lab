@@ -1,141 +1,213 @@
 terraform {
-  required_version = ">= 1.14.0"
-  # Local state intentional - single-machine k3d lab
-  # EKS prod would use: backend "s3" { bucket="...", key="...", dynamodb_table="...", encrypt=true }
+  required_version = ">= 1.6.0"
+
+  # Local state is intentional for this single-machine k3d lab.
+  # Production EKS would use a remote backend such as S3 with encryption
+  # and state locking.
   required_providers {
-    #  kubectl = { source = "gavinbunney/kubectl", version = "~> 1.14.0" }
-    helm = { source = "hashicorp/helm", version = "~> 2.12.0" }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.12"
+    }
   }
 }
 
+###############################################################################
+# k3d cluster
+#
+# The cluster definition is maintained in:
+#   ../clusters/observability-cluster.yaml
+#
+# The configuration hash causes Terraform to replace the cluster when the
+# k3d definition changes.
+#
+# This bootstrap is intended to run from WSL2/Linux because k3d, kubectl,
+# Helm, and the supporting shell commands are Linux-oriented tools.
+###############################################################################
 
 resource "null_resource" "k3d_cluster" {
   triggers = {
-    config_hash = filemd5("../clusters/observability-cluster.yaml")
-    # change this to force recreate: recreation = timestamp()
+    cluster_config_hash = filemd5(
+      "${path.module}/../clusters/observability-cluster.yaml"
+    )
   }
 
-  # 1. Provision Cluster via Local Exec (Cleanest wrapper for K3d in Terraform)
   provisioner "local-exec" {
-    command = <<EOT
-      if! k3d cluster list | grep -q observability-cluster; then
-        k3d cluster create --config../clusters/observability-cluster.yaml --timeout 300s
-      else
-        echo "Cluster already exists, skipping create"
-      fi
-    EOT
+    command = "k3d cluster create --config ${path.module}/../clusters/observability-cluster.yaml --timeout 300s"
   }
 
   provisioner "local-exec" {
     when    = destroy
-    command = "k3d cluster delete observability-cluster || true"
+    command = "k3d cluster delete observability-cluster"
+     on_failure = continue
   }
 }
 
-provider "helm" {
-  kubernetes {
-    config_path    = pathexpand("~/.kube/config") # Connects to the newly created K3d cluster
-    config_context = "k3d-observability-cluster"
-  }
-}
+###############################################################################
+# Wait for Kubernetes
+#
+# Prevents Helm/Argo bootstrap from racing the newly-created k3d cluster.
+###############################################################################
 
-
-# Automatically add and update required Helm repositories before deploying charts
-# Cross-platform: single line with && works on Windows cmd and Linux/macOS bash
-# Simplified - repo setup is for local dev convenience only
-# Helm releases use repository URL directly, not local repo cache
-# No --force-update, idempotent adds
-resource "null_resource" "helm_repositories" {
+resource "null_resource" "wait_for_cluster" {
   depends_on = [null_resource.k3d_cluster]
 
   provisioner "local-exec" {
-    command = <<EOT
-      helm repo add argo https://argoproj.github.io/argo-helm 2>/dev/null || true
-      helm repo add sealed-secrets https://bitnami.github.io/sealed-secrets 2>/dev/null || true
-      helm repo add grafana https://grafana.github.io/helm-charts 2>/dev/null || true
-      helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>/dev/null || true
-      helm repo add minio https://charts.min.io 2>/dev/null || true
-      helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts 2>/dev/null || true
+    command = "kubectl wait --for=condition=Ready nodes --all --timeout=180s"
+  }
+}
+
+###############################################################################
+# Helm repositories
+#
+# Repository setup is local bootstrap convenience only.
+# Helm releases below use explicit repository URLs and pinned chart versions.
+###############################################################################
+
+resource "null_resource" "helm_repositories" {
+  depends_on = [null_resource.wait_for_cluster]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      helm repo add argo https://argoproj.github.io/argo-helm || true
+      helm repo add sealed-secrets https://bitnami.github.io/sealed-secrets || true
+      helm repo add grafana https://grafana.github.io/helm-charts || true
+      helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+      helm repo add minio https://charts.min.io || true
+      helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts || true
       helm repo update
     EOT
   }
 }
 
-# 2. Deploy Argo CD using the official Helm chart
-# Argo CD Helm Release configured to wait for repository initialization
-# No static admin password - auto-generated secret for local hygiene
-# Retrieve: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-# server.insecure=true is INTENTIONAL for local lab only - Traefik HTTP for *.local domains
-# EKS prod: ALB Controller + ACM TLS + HTTPS + Cognito/OIDC
-# Fix: No committed hash - auto-generated secret per bootstrap, not same credential every rebuild
+###############################################################################
+# Argo CD
+#
+# Argo CD is the GitOps control plane for the observability stack.
+#
+# server.insecure=true is intentional for this local-only lab. Traefik
+# provides local HTTP routing. Production EKS would use HTTPS/TLS and an
+# appropriate identity provider/SSO configuration.
+###############################################################################
+
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
+  version          = "7.3.0"
   namespace        = "argocd"
   create_namespace = true
-  version          = "7.3.0" # Use a stable recent chart version
-  timeout          = 600
-  # Automatically configure server parameters declaratively
-  # No secret.argocdServerAdminPassword - auto-generated for local lab hygiene
-  # Prod EKS uses OIDC SSO, not static admin password
-  values = [<<-EOT
+
+  timeout = 600
+  wait    = true
+
+  values = [
+    <<-EOT
       configs:
         params:
-          # Local lab only - HTTP via Traefik for *.local
-          # mitigates: kubeAPI bound to 127.0.0.1, not 0.0.0.0
-          # Prod: server.insecure=false + TLS + ALB + ACM
-          server.insecure: "true" 
+          server.insecure: "true"
     EOT
   ]
 
-  depends_on = [null_resource.helm_repositories]
+  depends_on = [
+    null_resource.helm_repositories
+  ]
 }
 
+###############################################################################
+# Wait for Argo CD CRDs and server
+#
+# CRDs must exist before AppProject/Application resources are applied.
+# The server Deployment is also waited on so the GitOps control plane is
+# actually ready before the root Application is submitted.
+###############################################################################
 
-# NEW: Wait for ArgoCD CRDs to be established before applying Application
-resource "null_resource" "wait_for_argocd_crds" {
-  provisioner "local-exec" {
-    command = "kubectl wait --for=condition=established --timeout=180s crd/applications.argoproj.io crd/appprojects.argoproj.io"
-  }
+resource "null_resource" "wait_for_argocd" {
   depends_on = [helm_release.argocd]
-}
-
-resource "null_resource" "argocd_project" {
-  depends_on = [null_resource.wait_for_argocd_crds]
 
   provisioner "local-exec" {
-    command = "kubectl apply -f ../argocd/projects/observability-project.yaml"
-  }
+    command = <<-EOT
+      kubectl wait \
+        --for=condition=Established \
+        --timeout=180s \
+        crd/applications.argoproj.io \
+        crd/appprojects.argoproj.io
 
-  provisioner "local-exec" {
-    when    = destroy
-    command = "kubectl delete -f ../argocd/projects/observability-project.yaml --ignore-not-found=true || true"
-  }
-}
-
-
-# 3. Apply the Root GitOps Application
-resource "null_resource" "root_app" {
-  depends_on = [null_resource.argocd_project]
-
-  provisioner "local-exec" {
-    command = "kubectl apply -f ../argocd/root-app.yaml"
-  }
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "kubectl delete -f ../argocd/root-app.yaml --ignore-not-found=true || true"
+      kubectl rollout status \
+        deployment/argocd-server \
+        -n argocd \
+        --timeout=180s
+    EOT
   }
 }
 
-# 4. Deploy Sealed Secrets Controller using Helm
+###############################################################################
+# Sealed Secrets
+#
+# Installed before the GitOps applications are reconciled so that SealedSecret
+# resources in Git can be decrypted by the controller during bootstrap.
+###############################################################################
+
 resource "helm_release" "sealed_secrets" {
   name       = "sealed-secrets"
   repository = "https://bitnami.github.io/sealed-secrets"
   chart      = "sealed-secrets"
   version    = "2.16.1"
   namespace  = "kube-system"
-  timeout    = 300
-  depends_on = [null_resource.wait_for_argocd_crds] # don't run in parallel with argocd
+
+  timeout = 300
+  wait    = true
+
+  depends_on = [
+    null_resource.wait_for_cluster
+  ]
+}
+
+###############################################################################
+# Argo CD AppProject
+#
+# This project restricts the GitOps applications to the intended repository
+# and cluster/namespace scope rather than using Argo CD's unrestricted
+# default project.
+###############################################################################
+
+resource "null_resource" "argocd_project" {
+  depends_on = [
+    null_resource.wait_for_argocd
+  ]
+
+  provisioner "local-exec" {
+    command = "kubectl apply -f ${path.module}/../argocd/projects/observability-project.yaml"
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "kubectl delete -f ${path.module}/../argocd/projects/observability-project.yaml --ignore-not-found=true"
+    on_failure = continue
+  }
+}
+
+###############################################################################
+# Root GitOps Application
+#
+# The root Application bootstraps the App-of-Apps hierarchy.
+# Argo CD then becomes responsible for managing the remaining Kubernetes
+# resources from Git.
+###############################################################################
+
+resource "null_resource" "root_app" {
+  depends_on = [
+    null_resource.argocd_project,
+    helm_release.sealed_secrets
+  ]
+
+  provisioner "local-exec" {
+    command = "kubectl apply -f ${path.module}/../argocd/root-app.yaml"
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "kubectl delete -f ${path.module}/../argocd/root-app.yaml --ignore-not-found=true"
+    on_failure = continue
+  }
 }
