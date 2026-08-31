@@ -9,7 +9,7 @@ metadata:
 spec:
   project: observability-lab
   source:
-    repoURL: https://github.com/SwamyVaditya/k3d-observability-lab
+    repoURL: https://github.com/SwamyVaditya/k3d-observability-lab.git
     path: apps/platform/hardening
     targetRevision: main
   destination:

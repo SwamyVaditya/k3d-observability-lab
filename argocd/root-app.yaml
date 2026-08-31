@@ -8,7 +8,7 @@ metadata:
 spec:
   project: observability-lab  # Was default
   source:
-    repoURL: 'https://github.com/swamyvaditya/k3d-observability-lab.git' # Update with your actual repo URL
+    repoURL: 'https://github.com/SwamyVaditya/k3d-observability-lab.git' # Update with your actual repo URL
     targetRevision: main # Intentional: continuous delivery demo. Prod = pinned tag/commit
     path: apps/monitoring
   destination:

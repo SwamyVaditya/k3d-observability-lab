@@ -17,7 +17,7 @@ spec:
           - $GitRepo/apps/monitoring/tempo-values.yaml
     
     # Source 2: Your Git repository containing the custom values file
-    - repoURL: https://github.com/swamyvaditya/k3d-observability-lab.git
+    - repoURL: https://github.com/SwamyVaditya/k3d-observability-lab.git
       targetRevision: main
       ref: GitRepo
 

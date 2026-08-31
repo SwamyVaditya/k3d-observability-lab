@@ -9,8 +9,11 @@ spec:
 
   # Only this repo allowed
   sourceRepos:
-        - "https://github.com/SwamyVaditya/k3d-observability-lab"
         - "https://github.com/SwamyVaditya/k3d-observability-lab.git"
+        - "https://grafana.github.io/helm-charts"
+        - "https://charts.min.io"
+        - "https://open-telemetry.github.io/opentelemetry-helm-charts"
+        - "https://prometheus-community.github.io/helm-charts"
 
   # Only allowed namespaces
   destinations:
@@ -19,8 +22,6 @@ spec:
     - namespace: monitoring
       server: https://kubernetes.default.svc
     - namespace: kube-system
-      server: https://kubernetes.default.svc
-    - namespace: otel-demo
       server: https://kubernetes.default.svc
 
   # Whitelist resource types (deny dangerous cluster-wide mutating resources)
