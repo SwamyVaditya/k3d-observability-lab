@@ -158,34 +158,37 @@ Instead of relying solely on `kubectl port-forward`, this lab configures Traefik
 
 ---
 
+## Prerequisites
+
+This lab is developed and tested using:
+
+- **Windows 11** with WSL2
+- **Docker Desktop** with WSL2 integration enabled (running)
+- **Ubuntu on WSL2** - all `terraform` commands must run here, not in PowerShell/CMD
+- **Terraform >= 1.6** - installed **inside WSL2** (`terraform` in WSL2, not Windows)
+- **k3d** - installed **inside WSL2**
+- **kubectl** - installed **inside WSL2**
+- **Helm** - installed **inside WSL2**
+- [Argo CD CLI](https://argo-cd.readthedocs.io/en/stable/cli_installation/) (optional, for debugging)
+- **kubeseal** - CLI for Sealed Secrets (optional)
+    - Windows: `choco install sealed-secrets`
+    - WSL2/Linux: `brew install kubeseal` or download binary
+
+> **Important for Windows users:** 
+> Install k3d, kubectl, helm, terraform inside WSL2 Ubuntu. The Terraform Helm provider explicitly uses the WSL2 kubeconfig context `k3d-observability-cluster` with `config_path = pathexpand("~/.kube/config")`. Running from native PowerShell/CMD will fail with `Kubernetes cluster unreachable` and CRLF issues. A `.gitattributes` file enforces LF line endings for this reason.
+
 ### Quick Start Guide
 
-#### Prerequisites
+#### 1. Start Docker Desktop
+Ensure Docker Desktop is running with WSL2 integration enabled.
 
-Ensure you have the following installed on your development environment:
-
-* [Docker Desktop](https://www.docker.com/) (running)
-* [K3d](https://k3d.io/)
-* [Terraform](https://www.terraform.io/)
-* [Helm](https://helm.sh/)
-* [Kubectl](https://kubernetes.io/docs/tasks/tools/)
-* [Argo CD CLI](https://www.google.com/search?q=https://argo-cd.readthedocs.io/en/stable/cli_usage/)
-* **kubeseal** (CLI tool for Bitnami Sealed Secrets encryption)
-* *Note for Windows users:* Install via Chocolatey using `choco install sealed-secrets` (the package name is `sealed-secrets`, not `kubeseal`).
-
-
-
----
-
-#### 1. Bootstrap the Environment via Terraform
-
+#### 2. Bootstrap the Environment via Terraform from WSL2
 Navigate to the `bootstrap/` directory and execute Terraform to spin up the local K3d cluster, deploy Argo CD via Helm, and apply the Root GitOps application:
-
 ```bash
-cd bootstrap
+wsl
+cd /mnt/c/1.\ OPS/Repos/k3d-observability-lab/bootstrap
 terraform init
-terraform apply
-
+terraform apply -auto-approve
 ```
 
 ---
