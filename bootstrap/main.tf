@@ -12,6 +12,13 @@ terraform {
   }
 }
 
+provider "helm" {
+  kubernetes {
+    config_path    = pathexpand("~/.kube/config")
+    config_context = "k3d-observability-cluster"
+  }
+}
+
 ###############################################################################
 # k3d cluster
 #
@@ -126,18 +133,7 @@ resource "null_resource" "wait_for_argocd" {
   depends_on = [helm_release.argocd]
 
   provisioner "local-exec" {
-    command = <<-EOT
-      kubectl wait \
-        --for=condition=Established \
-        --timeout=180s \
-        crd/applications.argoproj.io \
-        crd/appprojects.argoproj.io
-
-      kubectl rollout status \
-        deployment/argocd-server \
-        -n argocd \
-        --timeout=180s
-    EOT
+    command = "kubectl wait --for=condition=Established --timeout=180s crd/applications.argoproj.io crd/appprojects.argoproj.io && kubectl rollout status deployment/argocd-server -n argocd --timeout=180s"
   }
 }
 
