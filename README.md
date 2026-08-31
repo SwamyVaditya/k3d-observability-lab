@@ -193,7 +193,7 @@ terraform apply -auto-approve
 
 ---
 
-#### 2. Secrets Management (Sealed Secrets Workflow)
+#### 3. Secrets Management (Sealed Secrets Workflow)
 
 To handle component dependencies securely in a true GitOps workflow (ensuring MinIO and its credentials exist before backends like Loki and Tempo deploy), we use Bitnami's **Sealed Secrets** combined with native Argo CD **Sync Waves (`sync-wave`)**.
 
@@ -250,7 +250,7 @@ When Argo CD syncs these sealed resources, the in-cluster `sealed-secrets` contr
 
 ---
 
-#### 3. Access the Services via Ingress
+#### 4. Access the Services via Ingress
 
 Once your hosts file is updated and services are running, access your stack directly in your browser:
 
