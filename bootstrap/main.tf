@@ -203,7 +203,7 @@ resource "null_resource" "root_app" {
 
   provisioner "local-exec" {
     when       = destroy
-    command    = "kubectl delete -f ${path.module}/../argocd/root-app.yaml --ignore-not-found=true"
+    command    = "kubectl patch application root-observability-app -n argocd -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge || true; kubectl delete -f ${path.module}/../argocd/root-app.yaml --ignore-not-found=true --force --grace-period=0 || true"
     on_failure = continue
   }
 }
