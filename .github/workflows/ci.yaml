@@ -68,7 +68,7 @@ jobs:
           helm template test-otel open-telemetry/opentelemetry-demo -n monitoring -f apps/monitoring/otel-demo-values.yaml | kubeconform -strict -summary -verbose -ignore-missing-schemas
 
   validate-hardening:
-    name: Validate Probes & Resources (HP1)
+    name: Validate Probes & Resources
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,59 +94,44 @@ jobs:
       - name: Check critical workloads have probes + resources
         run: |
           python3 - << 'PY'
-          import yaml, sys, pathlib
-          file = pathlib.Path("/tmp/otel-demo.yaml").read_text()
-          docs = list(yaml.safe_load_all(file))
-
-          critical = ["cart", "checkout", "frontend", "frontend-proxy", "payment", "kafka"]
-          failed = False
-
+          import yaml, pathlib, sys
+          docs = list(yaml.safe_load_all(pathlib.Path("/tmp/otel-demo.yaml").read_text()))
+          critical = ["cart","checkout","frontend","frontend-proxy","payment","kafka"]
+          failed=False
           for svc in critical:
-            name = svc # deployments are named cart, checkout etc in monitoring ns - NOT otel-demo-cart
-            dep = next((d for d in docs if d and d.get("kind")=="Deployment" and d.get("metadata",{}).get("name")==name), None)
+            dep = next((d for d in docs if d and d.get("kind")=="Deployment" and d.get("metadata",{}).get("name")==svc), None)
             if not dep:
-              print(f"::error:: {svc} - Deployment {name} not found in rendered template")
-              # list what was found for debugging
-              found = [d.get("metadata",{}).get("name") for d in docs if d and d.get("kind")=="Deployment"]
-              print(f" Found deployments: {found[:15]}")
-              failed = True
+              print(f"::error:: {svc} Deployment not found")
+              failed=True
               continue
-            container = dep["spec"]["template"]["spec"]["containers"][0]
-            has_live = container.get("livenessProbe") is not None
-            has_ready = container.get("readinessProbe") is not None
-            req_mem = container.get("resources",{}).get("requests",{}).get("memory")
-            lim_mem = container.get("resources",{}).get("limits",{}).get("memory")
-            req_cpu = container.get("resources",{}).get("requests",{}).get("cpu")
-            lim_cpu = container.get("resources",{}).get("limits",{}).get("cpu")
-
-            print(f"--- {svc} ---")
-            print(f" livenessProbe: {has_live}, readinessProbe: {has_ready}, req: {req_mem}/{req_cpu}, lim: {lim_mem}/{lim_cpu}")
-
-            if not has_live or not has_ready:
+            c = dep["spec"]["template"]["spec"]["containers"][0]
+            live = c.get("livenessProbe")
+            ready = c.get("readinessProbe")
+            req = c.get("resources",{}).get("requests",{}).get("memory")
+            lim = c.get("resources",{}).get("limits",{}).get("memory")
+            print(f"--- {svc} --- liveness: {live is not None}, readiness: {ready is not None}, req: {req}, lim: {lim}")
+            if not live or not ready:
               print(f"::error:: {svc} missing probes")
-              failed = True
-            if not req_mem or not lim_mem:
+              failed=True
+            if not req or not lim:
               print(f"::error:: {svc} missing resources")
-              failed = True
-
+              failed=True
           if failed:
-            print("HP1 validation FAILED")
             sys.exit(1)
-          print("✅ HP1 passed - all critical workloads have probes + resources")
+          print("✅ All critical workloads have probes + resources owned in values.yaml")
           PY
 
-      - name: Validate alloy & loki values have resources (R1)
+      - name: Validate alloy & loki values have resources
         run: |
           python3 - << 'PY'
           import yaml, pathlib
           alloy = yaml.safe_load(pathlib.Path("apps/monitoring/alloy-values.yaml").read_text())
           loki = yaml.safe_load(pathlib.Path("apps/monitoring/loki-values.yaml").read_text())
-
-          assert alloy["alloy"]["resources"]["requests"]["memory"], "alloy requests.memory missing"
-          assert alloy["alloy"]["resources"]["limits"]["memory"], "alloy limits.memory missing"
-          assert loki["singleBinary"]["resources"]["requests"]["memory"], "loki requests.memory missing"
-          assert loki["singleBinary"]["resources"]["limits"]["memory"], "loki limits.memory missing"
-          print(f"✅ R1 - alloy: {alloy['alloy']['resources']} loki: {loki['singleBinary']['resources']}")
+          assert alloy["alloy"]["resources"]["requests"]["memory"]
+          assert alloy["alloy"]["resources"]["limits"]["memory"]
+          assert loki["singleBinary"]["resources"]["requests"]["memory"]
+          assert loki["singleBinary"]["resources"]["limits"]["memory"]
+          print("✅ Passed")
           PY
   
   manifest-validate:
