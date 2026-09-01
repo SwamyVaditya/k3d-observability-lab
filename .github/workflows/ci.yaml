@@ -150,25 +150,35 @@ jobs:
         run: |
           find apps -type f -name "*.yaml" -o -name "*.yml" | xargs -I {} sh -c 'echo "=== {} ==="; kubeconform -strict -summary -verbose -ignore-missing-schemas {} || true'
       
-      - name: kubectl dry-run + GitOps topology
+      - name: CI2+CI4 - Validate ArgoCD manifests + GitOps topology (no cluster needed)
         run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-          kubectl apply --dry-run=client --validate=false -f argocd/root-app.yaml
-          kubectl apply --dry-run=client --validate=false -f apps/monitoring/ --recursive
+          echo "=== CI2: ArgoCD manifests with kubeconform (ignores missing CRD schema) ==="
+          kubeconform -strict -summary -verbose -ignore-missing-schemas argocd/root-app.yaml
+          kubeconform -strict -summary -verbose -ignore-missing-schemas apps/monitoring/
+
+          echo "=== CI4: GitOps topology ==="
           python3 - << 'PY'
           import pathlib, yaml
           root = yaml.safe_load(pathlib.Path("argocd/root-app.yaml").read_text())
-          print(f"Root -> {root['spec']['source']['path']}")
+          assert root.get("kind") == "Application", "root-app.yaml not Application"
+          print(f"Root app {root['metadata']['name']} -> path: {root['spec']['source']['path']}")
+
           apps = list(pathlib.Path("apps/monitoring").glob("*.app.yaml"))
           print(f"Found {len(apps)} child apps: {[a.name for a in apps]}")
           assert len(apps) >= 6, f"Expected >=6 apps, found {len(apps)}"
+
           for f in apps:
             d=yaml.safe_load(f.read_text())
-            for vf in d['spec']['source'].get('helm',{}).get('valueFiles',[]):
-              local = vf.replace("$values/","")
-              if not (pathlib.Path(local).exists() or pathlib.Path(f"apps/monitoring/{pathlib.Path(vf).name}").exists()):
-                print(f"::warning:: {vf} referenced in {f.name} not found as {local}")
+            assert d.get("kind") == "Application", f"{f.name} not Application"
+            # check source path / chart
+            src = d["spec"]["source"]
+            print(f"✅ {f.name}: chart={src.get('chart')} repo={src.get('repoURL')}")
+            for vf in src.get('helm',{}).get('valueFiles',[]):
+              # values files like $values/apps/monitoring/xxx-values.yaml
+              local = vf.replace("$values/","").replace("$","")
+              candidates = [pathlib.Path(local), pathlib.Path(f"apps/monitoring/{pathlib.Path(vf).name}")]
+              if not any(c.exists() for c in candidates):
+                print(f"::warning:: {vf} referenced in {f.name} not found locally (checked {candidates})")
           print("✅ GitOps topology OK")
           PY
       
