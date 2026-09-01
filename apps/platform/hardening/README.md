@@ -63,17 +63,25 @@ kubectl -n monitoring get pdb
 Skipped in k3d lab. k3d default CNI (flannel) does not enforce NetworkPolicy.
 In production EKS/GKE, would use Cilium/Calico with default-deny.
 
-### 4. Health Probes — Inherited + CI-Validated
+### 4. Health Probes — Owned Declaratively + CI-Validated
 
-Liveness/readiness probes are inherited from upstream `open-telemetry/opentelemetry-demo` Helm chart.
+Liveness and readiness probes are **owned declaratively** in `apps/monitoring/otel-demo-values.yaml` for all critical workloads.
 
-This repo does not re-declare probes to avoid drift from upstream. Instead, CI structurally validates rendered manifests:
+The upstream chart `0.40.10` defaults to empty probes (`livenessProbe: {}` / `readinessProbe: {}`), so probes must be explicitly set in values. This repo sets `httpGet` probes on `/health:8080` for Go/Node services and `/` on `:9092` for Kafka to satisfy chart schema validation.
 
-- `helm template otel-demo open-telemetry/opentelemetry-demo -f apps/monitoring/otel-demo-values.yaml --namespace monitoring`
-- Checks critical Deployments (cart, checkout, frontend, frontend-proxy, payment, kafka) contain `readinessProbe`, `livenessProbe`, `resources.requests/limits`
-- Job: `validate-hardening` in `.github/workflows/ci.yaml`
+Validated in two places:
+1. **Template**: `helm template otel-demo open-telemetry/opentelemetry-demo --version 0.40.10 -f apps/monitoring/otel-demo-values.yaml --namespace monitoring` must contain `livenessProbe` and `readinessProbe`
+2. **Live cluster**: `kubectl -n monitoring get deploy cart -o yaml | grep -A3 livenessProbe`
 
-```powershell
+CI job `validate-hardening` in `.github/workflows/ci.yaml` templates the chart with `--version 0.40.10` and asserts all critical Deployments (`cart`, `checkout`, `frontend`, `frontend-proxy`, `payment`, `kafka`) contain probes and `resources.requests/limits`. The build fails if hardening is missing.
+
+```bash
+# Template validation (no cluster needed)
+helm template otel-demo open-telemetry/opentelemetry-demo --version 0.40.10 \
+  -f apps/monitoring/otel-demo-values.yaml --namespace monitoring > /tmp/otel-demo.yaml
+grep -A3 "livenessProbe:" /tmp/otel-demo.yaml | head -20
+
+# Live cluster verification
 kubectl -n monitoring get deploy cart -o jsonpath='{.spec.template.spec.containers[0].livenessProbe}'
 kubectl -n monitoring get deploy cart -o jsonpath='{.spec.template.spec.containers[0].readinessProbe}'
 ```
