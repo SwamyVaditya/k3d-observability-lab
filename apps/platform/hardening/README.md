@@ -33,14 +33,6 @@ cart:
     limits: { cpu: 500m, memory: 512Mi }
 ```
 
-For this k3d lab, applied imperatively:
-
-```powershell
-kubectl -n monitoring set resources deployment cart --requests=cpu=50m,memory=128Mi --limits=cpu=500m,memory=512Mi
-kubectl -n monitoring set resources deployment checkout --requests=cpu=50m,memory=128Mi --limits=cpu=500m,memory=512Mi
-kubectl -n monitoring set resources deployment frontend --requests=cpu=100m,memory=128Mi --limits=cpu=500m,memory=512Mi
-kubectl -n monitoring set resources deployment kafka --requests=cpu=100m,memory=256Mi --limits=cpu=1000m,memory=1Gi
-```
 
 ### 2. PodDisruptionBudgets
 Ensures voluntary disruptions (drain, upgrade) don't take down checkout.

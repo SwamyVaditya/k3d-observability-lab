@@ -12,28 +12,104 @@ jaeger: { enabled: false }
 components:
   accounting: { enabled: false }
   ad: { enabled: false }
-  #fraud-detection: { enabled: false }
-  # image-provider: { enabled: false }
-  
-  #kafka: 
-  #  enabled: false
-  #  resources:
-  #    limits:
-  #      memory: 300Mi
-
-  
-  # llm: { enabled: false }
   recommendation: { enabled: false }
 
   load-generator: 
     enabled: false
+  
+  fraud-detection: 
+    enabled: false
+    initContainers: []
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 400Mi } # Java/heavy
+
+
+  kafka:
+    enabled: true
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 1000m, memory: 800Mi } # was 600Mi, needs headroom
+
+  cart:
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 160Mi }
 
   # These fix the 'Init' issue while keeping the pods running
   checkout:
     initContainers: [] # This removes the 'wait-for-kafka' initContainer entirely
-  fraud-detection: 
-    enabled: false
-    initContainers: []
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 300m, memory: 256Mi } # was 20Mi - too low, checkout is critical, bump
+
+  currency:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 64Mi } # Go service, tiny
+
+  email:
+    resources:
+      requests: { cpu: 30m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 150Mi }
+  
+  frontend:
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 350Mi } # Next.js
+
+  frontend-proxy:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 96Mi } # Envoy
+
+  image-provider:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 96Mi }
+
+  payment:
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 300m, memory: 200Mi }
+
+  product-catalog:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 96Mi }
+
+  product-reviews:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 200m, memory: 150Mi }
+
+  quote:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 96Mi }
+
+  shipping:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 96Mi }
+
+  flagd:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+  
+  postgresql:
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+
+  valkey-cart:
+    resources:
+      requests: { cpu: 20m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 96Mi }
+  
+  # llm: { enabled: false }
+
 
 # --- GLOBAL CONFIG ---
 default:
