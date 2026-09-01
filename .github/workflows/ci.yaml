@@ -71,17 +71,12 @@ jobs:
     name: Validate Probes & Resources (HP1)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Install Helm
-        uses: azure/setup-helm@v5
+        uses: azure/setup-helm@v4
         with:
-          version: latest
-
-      - name: Install yq
-        uses: mikefarah/yq@v4
-        with:
-          cmd: yq --version
+          version: v3.14.0
 
       - name: Add otel-demo repo
         run: |
@@ -94,53 +89,62 @@ jobs:
             --version 0.40.10 \
             -f apps/monitoring/otel-demo-values.yaml \
             --namespace monitoring > /tmp/otel-demo.yaml
-          echo "Rendered $(grep -c "^kind: Deployment" /tmp/otel-demo.yaml) Deployments"
+          echo "Rendered $(grep -c "kind: Deployment" /tmp/otel-demo.yaml) Deployments"
 
       - name: Check critical workloads have probes + resources
         run: |
-          echo "## Checking HP1 - Probes & Resources"
-          FAILED=0
-          for svc in cart checkout frontend frontend-proxy payment kafka; do
-            echo "--- $svc ---"
+          python3 - << 'PY'
+          import yaml, sys, pathlib
+          file = pathlib.Path("/tmp/otel-demo.yaml").read_text()
+          docs = list(yaml.safe_load_all(file))
 
-            # otel-demo chart names are like otel-demo-cart, otel-demo-checkout etc
-            LIVE=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].livenessProbe | has(0) or (.!= null)" /tmp/otel-demo.yaml | grep -E "true" | head -1)
-            READY=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].readinessProbe | (.!= null)" /tmp/otel-demo.yaml | grep -E "true" | head -1)
-            REQ=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].resources.requests.memory" /tmp/otel-demo.yaml)
-            LIM=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].resources.limits.memory" /tmp/otel-demo.yaml)
+          critical = ["cart", "checkout", "frontend", "frontend-proxy", "payment", "kafka"]
+          failed = False
 
-            echo " livenessProbe exists: ${LIVE:-false}, readinessProbe exists: ${READY:-false}, requests: $REQ, limits: $LIM"
+          for svc in critical:
+            name = f"otel-demo-{svc}"
+            dep = next((d for d in docs if d and d.get("kind")=="Deployment" and d.get("metadata",{}).get("name")==name), None)
+            if not dep:
+              print(f"::error:: {svc} - Deployment {name} not found")
+              failed = True
+              continue
+            container = dep["spec"]["template"]["spec"]["containers"][0]
+            has_live = container.get("livenessProbe") is not None
+            has_ready = container.get("readinessProbe") is not None
+            req_mem = container.get("resources",{}).get("requests",{}).get("memory")
+            lim_mem = container.get("resources",{}).get("limits",{}).get("memory")
+            req_cpu = container.get("resources",{}).get("requests",{}).get("cpu")
+            lim_cpu = container.get("resources",{}).get("limits",{}).get("cpu")
 
-            if [ -z "$LIVE" ]; then
-              echo "::error:: $svc missing livenessProbe"
-              # debug dump
-              yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0] | keys" /tmp/otel-demo.yaml
-              FAILED=1
-            fi
-            if [ -z "$READY" ]; then
-              echo "::error:: $svc missing readinessProbe"
-              FAILED=1
-            fi
-            if [ -z "$REQ" ] || [ "$REQ" = "null" ] || [ -z "$LIM" ] || [ "$LIM" = "null" ]; then
-              echo "::error:: $svc missing resources.requests/limits"
-              FAILED=1
-            fi
-          done
+            print(f"--- {svc} ({name}) ---")
+            print(f" livenessProbe: {has_live}, readinessProbe: {has_ready}, req: {req_mem}/{req_cpu}, lim: {lim_mem}/{lim_cpu}")
 
-          if [ $FAILED -ne 0 ]; then
-            echo "HP1 validation FAILED"
-            exit 1
-          fi
-          echo "✅ HP1 passed - all critical workloads have probes + resources"
+            if not has_live or not has_ready:
+              print(f"::error:: {svc} missing probes - live:{has_live} ready:{has_ready}")
+              failed = True
+            if not req_mem or not lim_mem:
+              print(f"::error:: {svc} missing resources.requests/limits memory - req:{req_mem} lim:{lim_mem}")
+              failed = True
 
-      - name: Validate alloy & loki values have resources
+          if failed:
+            print("HP1 validation FAILED")
+            sys.exit(1)
+          print("✅ HP1 passed - all critical workloads have probes + resources")
+          PY
+
+      - name: Validate alloy & loki values have resources (R1)
         run: |
-          echo "Checking alloy-values.yaml and loki-values.yaml"
-          yq e '.alloy.resources.requests.memory' apps/monitoring/alloy-values.yaml | grep -v null
-          yq e '.alloy.resources.limits.memory' apps/monitoring/alloy-values.yaml | grep -v null
-          yq e '.singleBinary.resources.requests.memory' apps/monitoring/loki-values.yaml | grep -v null
-          yq e '.singleBinary.resources.limits.memory' apps/monitoring/loki-values.yaml | grep -v null
-          echo "✅ R1 validation passed - alloy & loki have resources"
+          python3 - << 'PY'
+          import yaml, pathlib
+          alloy = yaml.safe_load(pathlib.Path("apps/monitoring/alloy-values.yaml").read_text())
+          loki = yaml.safe_load(pathlib.Path("apps/monitoring/loki-values.yaml").read_text())
+
+          assert alloy["alloy"]["resources"]["requests"]["memory"], "alloy requests.memory missing"
+          assert alloy["alloy"]["resources"]["limits"]["memory"], "alloy limits.memory missing"
+          assert loki["singleBinary"]["resources"]["requests"]["memory"], "loki requests.memory missing"
+          assert loki["singleBinary"]["resources"]["limits"]["memory"], "loki limits.memory missing"
+          print(f"✅ R1 - alloy: {alloy['alloy']['resources']} loki: {loki['singleBinary']['resources']}")
+          PY
   
   manifest-validate:
     name: Raw K8s manifests & Argo CD Apps
