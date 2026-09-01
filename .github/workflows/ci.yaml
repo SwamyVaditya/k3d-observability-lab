@@ -67,6 +67,80 @@ jobs:
         run: |
           helm template test-otel open-telemetry/opentelemetry-demo -n monitoring -f apps/monitoring/otel-demo-values.yaml | kubeconform -strict -summary -verbose -ignore-missing-schemas
 
+  validate-hardening:
+    name: Validate Probes & Resources (HP1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Install yq
+        uses: mikefarah/yq@v4
+        with:
+          cmd: yq --version
+
+      - name: Add otel-demo repo
+        run: |
+          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+          helm repo update
+
+      - name: Template otel-demo with our values
+        run: |
+          helm template otel-demo open-telemetry/opentelemetry-demo \
+            --version 0.40.10 \
+            -f apps/monitoring/otel-demo-values.yaml \
+            --namespace monitoring > /tmp/otel-demo.yaml
+          echo "Rendered $(grep -c "^kind: Deployment" /tmp/otel-demo.yaml) Deployments"
+
+      - name: Check critical workloads have probes + resources
+        run: |
+          echo "## Checking HP1 - Probes & Resources"
+          FAILED=0
+          for svc in cart checkout frontend frontend-proxy payment kafka; do
+            echo "--- $svc ---"
+
+            # Find deployment by name
+            DEP=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.metadata.name" /tmp/otel-demo.yaml)
+            if [ -z "$DEP" ]; then
+              DEP=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.metadata.name" /tmp/otel-demo.yaml | head -1)
+            fi
+
+            HAS_LIVENESS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0] | has(\"livenessProbe\")" /tmp/otel-demo.yaml | grep -c true || true)
+            HAS_READINESS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0] | has(\"readinessProbe\")" /tmp/otel-demo.yaml | grep -c true || true)
+            HAS_REQUESTS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0].resources.requests.memory // \"\"" /tmp/otel-demo.yaml | head -1)
+            HAS_LIMITS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0].resources.limits.memory // \"\"" /tmp/otel-demo.yaml | head -1)
+
+            echo " livenessProbe: $HAS_LIVENESS, readinessProbe: $HAS_READINESS, requests: $HAS_REQUESTS, limits: $HAS_LIMITS"
+
+            if [ "$HAS_LIVENESS" -eq 0 ] || [ "$HAS_READINESS" -eq 0 ]; then
+              echo "::error:: $svc missing probes"
+              FAILED=1
+            fi
+            if [ -z "$HAS_REQUESTS" ] || [ -z "$HAS_LIMITS" ]; then
+              echo "::error:: $svc missing resources.requests/limits"
+              FAILED=1
+            fi
+          done
+
+          if [ $FAILED -ne 0 ]; then
+            echo "HP1 validation FAILED"
+            exit 1
+          fi
+          echo "✅ HP1 passed - all critical workloads have probes + resources"
+
+      - name: Validate alloy & loki values have resources
+        run: |
+          echo "Checking alloy-values.yaml and loki-values.yaml"
+          yq e '.alloy.resources.requests.memory' apps/monitoring/alloy-values.yaml | grep -v null
+          yq e '.alloy.resources.limits.memory' apps/monitoring/alloy-values.yaml | grep -v null
+          yq e '.singleBinary.resources.requests.memory' apps/monitoring/loki-values.yaml | grep -v null
+          yq e '.singleBinary.resources.limits.memory' apps/monitoring/loki-values.yaml | grep -v null
+          echo "✅ R1 validation passed - alloy & loki have resources"
+  
   manifest-validate:
     name: Raw K8s manifests & Argo CD Apps
     runs-on: ubuntu-latest
