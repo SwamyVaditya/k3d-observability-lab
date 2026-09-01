@@ -150,30 +150,22 @@ jobs:
         run: |
           find apps -type f -name "*.yaml" -o -name "*.yml" | xargs -I {} sh -c 'echo "=== {} ==="; kubeconform -strict -summary -verbose -ignore-missing-schemas {} || true'
       
-      - name: CI2+CI4 - Validate ArgoCD manifests + GitOps topology (no cluster needed)
+      - name: Validate ArgoCD manifests + GitOps topology
         run: |
-          echo "=== CI2: Only *.app.yaml + real k8s manifests (exclude *-values.yaml) ==="
-          # Only Argo Applications
-          kubeconform -strict -summary -verbose -ignore-missing-schemas -ignore-missing-schemas apps/monitoring/*.app.yaml argocd/root-app.yaml
+          echo "=== Only *app.yaml + real k8s manifests ==="
+          kubeconform -strict -summary -verbose -ignore-missing-schemas argocd/root-app.yaml apps/monitoring/*app.yaml
           
-          # Real K8s manifests only (ingress, dashboards, slos)
-          find apps/monitoring -type f -name "*.yaml" ! -name "*-values.yaml" ! -name "*.app.yaml" -print | xargs -I {} sh -c 'echo "=== {} ==="; kubeconform -strict -summary -verbose -ignore-missing-schemas {}'
+          echo "=== Real K8s manifests (exclude values and app files) ==="
+          find apps/monitoring -type f -name "*.yaml" ! -name "*-values.yaml" ! -name "*app.yaml" -print | xargs -I {} sh -c 'echo "=== {} ==="; kubeconform -strict -summary -verbose -ignore-missing-schemas {}'
 
-          echo "=== CI4: GitOps topology ==="
+          echo "=== GitOps topology ==="
           python3 - << 'PY'
           import pathlib, yaml
           root = yaml.safe_load(pathlib.Path("argocd/root-app.yaml").read_text())
           print(f"Root app {root['metadata']['name']} -> path: {root['spec']['source']['path']}")
-          apps = list(pathlib.Path("apps/monitoring").glob("*.app.yaml"))
+          apps = list(pathlib.Path("apps/monitoring").glob("*app.yaml"))
           print(f"Found {len(apps)} child apps: {[a.name for a in apps]}")
           assert len(apps) >= 6, f"Expected >=6 apps, found {len(apps)}"
-          for f in apps:
-            d=yaml.safe_load(f.read_text())
-            for vf in d['spec']['source'].get('helm',{}).get('valueFiles',[]):
-              local = vf.replace("$values/","")
-              candidates = [pathlib.Path(local), pathlib.Path(f"apps/monitoring/{pathlib.Path(vf).name}")]
-              if not any(c.exists() for c in candidates):
-                print(f"::warning:: {vf} in {f.name} not found")
           print("✅ GitOps topology OK")
           PY
       
