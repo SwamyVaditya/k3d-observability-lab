@@ -71,12 +71,12 @@ jobs:
     name: Validate Probes & Resources (HP1)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
         with:
-          version: v3.14.0
+          version: latest
 
       - name: Install yq
         uses: mikefarah/yq@v4
@@ -103,24 +103,25 @@ jobs:
           for svc in cart checkout frontend frontend-proxy payment kafka; do
             echo "--- $svc ---"
 
-            # Find deployment by name
-            DEP=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.metadata.name" /tmp/otel-demo.yaml)
-            if [ -z "$DEP" ]; then
-              DEP=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.metadata.name" /tmp/otel-demo.yaml | head -1)
-            fi
+            # otel-demo chart names are like otel-demo-cart, otel-demo-checkout etc
+            LIVE=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].livenessProbe | has(0) or (.!= null)" /tmp/otel-demo.yaml | grep -E "true" | head -1)
+            READY=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].readinessProbe | (.!= null)" /tmp/otel-demo.yaml | grep -E "true" | head -1)
+            REQ=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].resources.requests.memory" /tmp/otel-demo.yaml)
+            LIM=$(yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0].resources.limits.memory" /tmp/otel-demo.yaml)
 
-            HAS_LIVENESS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0] | has(\"livenessProbe\")" /tmp/otel-demo.yaml | grep -c true || true)
-            HAS_READINESS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0] | has(\"readinessProbe\")" /tmp/otel-demo.yaml | grep -c true || true)
-            HAS_REQUESTS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0].resources.requests.memory // \"\"" /tmp/otel-demo.yaml | head -1)
-            HAS_LIMITS=$(yq e "select(.kind==\"Deployment\" and.metadata.name | test(\"$svc\")) |.spec.template.spec.containers[0].resources.limits.memory // \"\"" /tmp/otel-demo.yaml | head -1)
+            echo " livenessProbe exists: ${LIVE:-false}, readinessProbe exists: ${READY:-false}, requests: $REQ, limits: $LIM"
 
-            echo " livenessProbe: $HAS_LIVENESS, readinessProbe: $HAS_READINESS, requests: $HAS_REQUESTS, limits: $HAS_LIMITS"
-
-            if [ "$HAS_LIVENESS" -eq 0 ] || [ "$HAS_READINESS" -eq 0 ]; then
-              echo "::error:: $svc missing probes"
+            if [ -z "$LIVE" ]; then
+              echo "::error:: $svc missing livenessProbe"
+              # debug dump
+              yq e "select(.kind==\"Deployment\" and.metadata.name==\"otel-demo-$svc\") |.spec.template.spec.containers[0] | keys" /tmp/otel-demo.yaml
               FAILED=1
             fi
-            if [ -z "$HAS_REQUESTS" ] || [ -z "$HAS_LIMITS" ]; then
+            if [ -z "$READY" ]; then
+              echo "::error:: $svc missing readinessProbe"
+              FAILED=1
+            fi
+            if [ -z "$REQ" ] || [ "$REQ" = "null" ] || [ -z "$LIM" ] || [ "$LIM" = "null" ]; then
               echo "::error:: $svc missing resources.requests/limits"
               FAILED=1
             fi
