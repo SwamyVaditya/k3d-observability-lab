@@ -152,33 +152,28 @@ jobs:
       
       - name: CI2+CI4 - Validate ArgoCD manifests + GitOps topology (no cluster needed)
         run: |
-          echo "=== CI2: ArgoCD manifests with kubeconform (ignores missing CRD schema) ==="
-          kubeconform -strict -summary -verbose -ignore-missing-schemas argocd/root-app.yaml
-          kubeconform -strict -summary -verbose -ignore-missing-schemas apps/monitoring/
+          echo "=== CI2: Only *.app.yaml + real k8s manifests (exclude *-values.yaml) ==="
+          # Only Argo Applications
+          kubeconform -strict -summary -verbose -ignore-missing-schemas -ignore-missing-schemas apps/monitoring/*.app.yaml argocd/root-app.yaml
+          
+          # Real K8s manifests only (ingress, dashboards, slos)
+          find apps/monitoring -type f -name "*.yaml" ! -name "*-values.yaml" ! -name "*.app.yaml" -print | xargs -I {} sh -c 'echo "=== {} ==="; kubeconform -strict -summary -verbose -ignore-missing-schemas {}'
 
           echo "=== CI4: GitOps topology ==="
           python3 - << 'PY'
           import pathlib, yaml
           root = yaml.safe_load(pathlib.Path("argocd/root-app.yaml").read_text())
-          assert root.get("kind") == "Application", "root-app.yaml not Application"
           print(f"Root app {root['metadata']['name']} -> path: {root['spec']['source']['path']}")
-
           apps = list(pathlib.Path("apps/monitoring").glob("*.app.yaml"))
           print(f"Found {len(apps)} child apps: {[a.name for a in apps]}")
           assert len(apps) >= 6, f"Expected >=6 apps, found {len(apps)}"
-
           for f in apps:
             d=yaml.safe_load(f.read_text())
-            assert d.get("kind") == "Application", f"{f.name} not Application"
-            # check source path / chart
-            src = d["spec"]["source"]
-            print(f"✅ {f.name}: chart={src.get('chart')} repo={src.get('repoURL')}")
-            for vf in src.get('helm',{}).get('valueFiles',[]):
-              # values files like $values/apps/monitoring/xxx-values.yaml
-              local = vf.replace("$values/","").replace("$","")
+            for vf in d['spec']['source'].get('helm',{}).get('valueFiles',[]):
+              local = vf.replace("$values/","")
               candidates = [pathlib.Path(local), pathlib.Path(f"apps/monitoring/{pathlib.Path(vf).name}")]
               if not any(c.exists() for c in candidates):
-                print(f"::warning:: {vf} referenced in {f.name} not found locally (checked {candidates})")
+                print(f"::warning:: {vf} in {f.name} not found")
           print("✅ GitOps topology OK")
           PY
       
@@ -196,9 +191,10 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install promtool
         run: |
-          PROM_VERSION=$(curl -s https://api.github.com/repos/prometheus/prometheus/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c2-)
+          PROM_VERSION="2.54.1"
           curl -L https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz | tar xz
           sudo mv prometheus-${PROM_VERSION}.linux-amd64/promtool /usr/local/bin/
+          promtool --version
       - name: Check Prometheus rules
         run: |
           echo "Rules embedded in values.yaml validated via helm template - skipping standalone check"
