@@ -102,10 +102,13 @@ jobs:
           failed = False
 
           for svc in critical:
-            name = f"otel-demo-{svc}"
+            name = svc # deployments are named cart, checkout etc in monitoring ns - NOT otel-demo-cart
             dep = next((d for d in docs if d and d.get("kind")=="Deployment" and d.get("metadata",{}).get("name")==name), None)
             if not dep:
-              print(f"::error:: {svc} - Deployment {name} not found")
+              print(f"::error:: {svc} - Deployment {name} not found in rendered template")
+              # list what was found for debugging
+              found = [d.get("metadata",{}).get("name") for d in docs if d and d.get("kind")=="Deployment"]
+              print(f" Found deployments: {found[:15]}")
               failed = True
               continue
             container = dep["spec"]["template"]["spec"]["containers"][0]
@@ -116,14 +119,14 @@ jobs:
             req_cpu = container.get("resources",{}).get("requests",{}).get("cpu")
             lim_cpu = container.get("resources",{}).get("limits",{}).get("cpu")
 
-            print(f"--- {svc} ({name}) ---")
+            print(f"--- {svc} ---")
             print(f" livenessProbe: {has_live}, readinessProbe: {has_ready}, req: {req_mem}/{req_cpu}, lim: {lim_mem}/{lim_cpu}")
 
             if not has_live or not has_ready:
-              print(f"::error:: {svc} missing probes - live:{has_live} ready:{has_ready}")
+              print(f"::error:: {svc} missing probes")
               failed = True
             if not req_mem or not lim_mem:
-              print(f"::error:: {svc} missing resources.requests/limits memory - req:{req_mem} lim:{lim_mem}")
+              print(f"::error:: {svc} missing resources")
               failed = True
 
           if failed:
