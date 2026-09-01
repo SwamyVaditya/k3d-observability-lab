@@ -11,7 +11,7 @@ argocd/
 apps/monitoring/
 ├── otel-demo.app.yaml # OpenTelemetry demo (owns Deployments)
 ├── prometheus.app.yaml # kube-prometheus-stack
-└── hardening.app.yaml # Platform hardening (owns PDBs)
+└── hardening-app.yaml # Platform hardening (owns PDBs)
 
 apps/platform/hardening/
 ├── 02-poddisruptionbudgets.yaml # PDBs for cart, checkout, frontend, kafka
