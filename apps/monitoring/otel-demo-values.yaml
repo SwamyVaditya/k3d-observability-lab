@@ -29,224 +29,89 @@ components:
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 1000m, memory: 800Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 9092 }
-      initialDelaySeconds: 45
-      periodSeconds: 15
-    readinessProbe:
-      httpGet: { path: /, port: 9092 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
+    
 
   cart:
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 200m, memory: 160Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   checkout:
     initContainers: [] 
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 256Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   currency:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 64Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   email:
     resources:
       requests: { cpu: 30m, memory: 64Mi }
       limits: { cpu: 200m, memory: 150Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-  
+    
   frontend:
     resources:
       requests: { cpu: 100m, memory: 128Mi }
       limits: { cpu: 500m, memory: 350Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   frontend-proxy:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   image-provider:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   payment:
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 200Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   product-catalog:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   product-reviews:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 200m, memory: 150Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   quote:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   shipping:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   flagd:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 128Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8013 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8013 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   postgresql:
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 500m, memory: 256Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 5432 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 5432 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   valkey-cart:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 6379 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 6379 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
   llm:
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 256Mi }
-    livenessProbe:
-      httpGet: { path: /, port: 8000 }
-      initialDelaySeconds: 20
-      periodSeconds: 10
-    readinessProbe:
-      httpGet: { path: /, port: 8000 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-
+  
 
 # --- GLOBAL CONFIG ---
 default:
