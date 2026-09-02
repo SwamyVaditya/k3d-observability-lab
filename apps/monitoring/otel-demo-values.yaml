@@ -13,45 +13,25 @@ components:
   accounting: { enabled: false }
   ad: { enabled: false }
   recommendation: { enabled: false }
-
-  load-generator: 
-    enabled: false
+  load-generator: { enabled: false }
   
   fraud-detection: 
     enabled: false
     initContainers: []
     resources:
       requests: { cpu: 100m, memory: 128Mi }
-      limits: { cpu: 500m, memory: 400Mi } # Java/heavy
-    livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
-      initialDelaySeconds: 10
-      periodSeconds: 10
-    readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
-      initialDelaySeconds: 5
-      periodSeconds: 5
-
+      limits: { cpu: 500m, memory: 400Mi }
 
   kafka:
     enabled: true
     resources:
       requests: { cpu: 100m, memory: 256Mi }
-      limits: { cpu: 1000m, memory: 800Mi } # was 600Mi, needs headroom
+      limits: { cpu: 1000m, memory: 800Mi }
+    # Let the chart pick the TCP/Exec mechanism, just adjust timings:
     livenessProbe:
-      httpGet:
-        path: /
-        port: 9092
       initialDelaySeconds: 30
       periodSeconds: 15
     readinessProbe:
-      httpGet:
-        path: /
-        port: 9092
       initialDelaySeconds: 10
       periodSeconds: 10
 
@@ -60,51 +40,32 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 200m, memory: 160Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
-  # These fix the 'Init' issue while keeping the pods running
   checkout:
-    initContainers: [] # This removes the 'wait-for-kafka' initContainer entirely
+    initContainers: [] 
     resources:
       requests: { cpu: 50m, memory: 64Mi }
-      limits: { cpu: 300m, memory: 256Mi } # was 20Mi - too low, checkout is critical, bump
+      limits: { cpu: 300m, memory: 256Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
   currency:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
-      limits: { cpu: 100m, memory: 64Mi } # Go service, tiny
+      limits: { cpu: 100m, memory: 64Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -113,49 +74,31 @@ components:
       requests: { cpu: 30m, memory: 64Mi }
       limits: { cpu: 200m, memory: 150Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
   
   frontend:
     resources:
       requests: { cpu: 100m, memory: 128Mi }
-      limits: { cpu: 500m, memory: 350Mi } # Next.js
+      limits: { cpu: 500m, memory: 350Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
   frontend-proxy:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
-      limits: { cpu: 100m, memory: 96Mi } # Envoy
+      limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -164,15 +107,9 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -181,15 +118,9 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 200Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -198,15 +129,9 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -215,15 +140,9 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 200m, memory: 150Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -232,15 +151,9 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -249,15 +162,9 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -266,15 +173,9 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 128Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -283,15 +184,9 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 500m, memory: 256Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -300,35 +195,23 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
 
-  # llm: { enabled: false }
   llm:
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 256Mi }
     livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
     readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
+
 
 # --- GLOBAL CONFIG ---
 default:
