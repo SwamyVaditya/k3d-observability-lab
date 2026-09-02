@@ -23,6 +23,7 @@ components:
       requests: { cpu: 100m, memory: 128Mi }
       limits: { cpu: 500m, memory: 400Mi }
 
+  # Satisfies Python CI checking and chart schema constraints
   kafka:
     enabled: true
     resources:
@@ -30,11 +31,11 @@ components:
       limits: { cpu: 1000m, memory: 800Mi }
     livenessProbe:
       httpGet: { path: /, port: 9092 }
-      initialDelaySeconds: 30
+      initialDelaySeconds: 45
       periodSeconds: 15
     readinessProbe:
       httpGet: { path: /, port: 9092 }
-      initialDelaySeconds: 10
+      initialDelaySeconds: 20
       periodSeconds: 10
 
   cart:
@@ -42,11 +43,11 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 200m, memory: 160Mi }
     livenessProbe:
-      httpGet: { path: /, port: 7070 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 7070 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -56,11 +57,11 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 256Mi }
     livenessProbe:
-      httpGet: { path: /, port: 5050 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 5050 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -69,11 +70,11 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 64Mi }
     livenessProbe:
-      httpGet: { path: /, port: 7000 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 7000 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -83,7 +84,7 @@ components:
       limits: { cpu: 200m, memory: 150Mi }
     livenessProbe:
       httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8080 }
@@ -96,7 +97,7 @@ components:
       limits: { cpu: 500m, memory: 350Mi }
     livenessProbe:
       httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8080 }
@@ -108,11 +109,11 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /, port: 8001 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 8001 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -121,11 +122,11 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /, port: 8081 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 8081 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -134,11 +135,11 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 200Mi }
     livenessProbe:
-      httpGet: { path: /, port: 50051 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 50051 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -147,11 +148,11 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /, port: 3550 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 3550 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -161,7 +162,7 @@ components:
       limits: { cpu: 200m, memory: 150Mi }
     livenessProbe:
       httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8080 }
@@ -174,7 +175,7 @@ components:
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
       httpGet: { path: /, port: 8080 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8080 }
@@ -186,11 +187,11 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /, port: 50051 }
-      initialDelaySeconds: 15
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /, port: 50051 }
+      httpGet: { path: /, port: 8080 }
       initialDelaySeconds: 10
       periodSeconds: 5
 
@@ -200,7 +201,7 @@ components:
       limits: { cpu: 100m, memory: 128Mi }
     livenessProbe:
       httpGet: { path: /, port: 8013 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8013 }
@@ -213,7 +214,7 @@ components:
       limits: { cpu: 500m, memory: 256Mi }
     livenessProbe:
       httpGet: { path: /, port: 5432 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 5432 }
@@ -226,7 +227,7 @@ components:
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
       httpGet: { path: /, port: 6379 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 6379 }
@@ -239,7 +240,7 @@ components:
       limits: { cpu: 300m, memory: 256Mi }
     livenessProbe:
       httpGet: { path: /, port: 8000 }
-      initialDelaySeconds: 15
+      initialDelaySeconds: 20
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8000 }
