@@ -1,5 +1,6 @@
 # --- ROOT LEVEL SUB-CHARTS ---
 # These are independent apps bundled with the demo. 
+# We keep only the bare essentials to see the shop.
 # Disabling these saves ~3GB of RAM.
 opentelemetry-collector: { enabled: false }
 opensearch: { enabled: false }
@@ -7,8 +8,8 @@ prometheus: { enabled: false }
 grafana: { enabled: false }
 jaeger: { enabled: false }
 
+
 # --- COMPONENTS (MICROSERVICES) ---
-# We keep only the bare essentials to see the shop.
 components:
   accounting: { enabled: false }
   ad: { enabled: false }
@@ -22,25 +23,31 @@ components:
       requests: { cpu: 100m, memory: 128Mi }
       limits: { cpu: 500m, memory: 400Mi }
 
-  # Kafka, PostgreSQL, and Valkey blocks are removed here.
-  # The chart will use its internal defaults, preventing the schema validation failure.
   kafka:
     enabled: true
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 1000m, memory: 800Mi }
+    livenessProbe:
+      httpGet: { path: /, port: 9092 }
+      initialDelaySeconds: 30
+      periodSeconds: 15
+    readinessProbe:
+      httpGet: { path: /, port: 9092 }
+      initialDelaySeconds: 10
+      periodSeconds: 10
 
   cart:
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 200m, memory: 160Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 7070 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 7070 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 7070 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 7070 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   checkout:
@@ -49,12 +56,12 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 256Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 5050 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 5050 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 5050 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 5050 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   currency:
@@ -62,12 +69,12 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 64Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 7000 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 7000 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 7000 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 7000 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   email:
@@ -75,12 +82,12 @@ components:
       requests: { cpu: 30m, memory: 64Mi }
       limits: { cpu: 200m, memory: 150Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 8080 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 8080 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 10
       periodSeconds: 5
   
   frontend:
@@ -88,12 +95,12 @@ components:
       requests: { cpu: 100m, memory: 128Mi }
       limits: { cpu: 500m, memory: 350Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 8080 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 8080 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   frontend-proxy:
@@ -102,11 +109,11 @@ components:
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
       httpGet: { path: /, port: 8001 }
-      initialDelaySeconds: 10
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8001 }
-      initialDelaySeconds: 5
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   image-provider:
@@ -114,12 +121,12 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /healthz, port: 8081 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 8081 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /healthz, port: 8081 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 8081 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   payment:
@@ -127,12 +134,12 @@ components:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 300m, memory: 200Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 50051 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 50051 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 50051 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 50051 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   product-catalog:
@@ -140,12 +147,12 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 3550 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 3550 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 3550 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 3550 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   product-reviews:
@@ -153,12 +160,12 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 200m, memory: 150Mi }
     livenessProbe:
-      httpGet: { path: /health, port: 8080 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /health, port: 8080 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   quote:
@@ -166,12 +173,12 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 8080 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 8080 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 8080 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   shipping:
@@ -179,12 +186,12 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
     livenessProbe:
-      httpGet: { path: /_healthz, port: 50051 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 50051 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /_healthz, port: 50051 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 50051 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   flagd:
@@ -192,23 +199,39 @@ components:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 128Mi }
     livenessProbe:
-      httpGet: { path: /readyz, port: 8013 }
-      initialDelaySeconds: 10
+      httpGet: { path: /, port: 8013 }
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
-      httpGet: { path: /readyz, port: 8013 }
-      initialDelaySeconds: 5
+      httpGet: { path: /, port: 8013 }
+      initialDelaySeconds: 10
       periodSeconds: 5
 
   postgresql:
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 500m, memory: 256Mi }
+    livenessProbe:
+      httpGet: { path: /, port: 5432 }
+      initialDelaySeconds: 15
+      periodSeconds: 10
+    readinessProbe:
+      httpGet: { path: /, port: 5432 }
+      initialDelaySeconds: 10
+      periodSeconds: 5
 
   valkey-cart:
     resources:
       requests: { cpu: 20m, memory: 32Mi }
       limits: { cpu: 100m, memory: 96Mi }
+    livenessProbe:
+      httpGet: { path: /, port: 6379 }
+      initialDelaySeconds: 15
+      periodSeconds: 10
+    readinessProbe:
+      httpGet: { path: /, port: 6379 }
+      initialDelaySeconds: 10
+      periodSeconds: 5
 
   llm:
     resources:
@@ -216,11 +239,11 @@ components:
       limits: { cpu: 300m, memory: 256Mi }
     livenessProbe:
       httpGet: { path: /, port: 8000 }
-      initialDelaySeconds: 10
+      initialDelaySeconds: 15
       periodSeconds: 10
     readinessProbe:
       httpGet: { path: /, port: 8000 }
-      initialDelaySeconds: 5
+      initialDelaySeconds: 10
       periodSeconds: 5
 
 
