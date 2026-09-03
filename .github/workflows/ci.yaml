@@ -118,29 +118,39 @@ jobs:
           print("✅ All critical workloads have resources owned in values.yaml")
           PY
 
-      - name: Validate upstream probes inherited (infra components)
+            - name: Validate upstream probes inherited (infra components)
         run: |
-          echo "=== OTel Demo - should have 0 probes (microservices have none upstream) ==="
-          liveness_count=$(grep -c "livenessProbe:" /tmp/otel-demo.yaml || true)
-          echo "OTel Demo livenessProbe: $liveness_count (expected 0 - upstream has none for cart/checkout/etc)"
-          
-          # Collector health_check only exists if collector enabled - in our setup it's Alloy, not otel collector
-          if grep -q "opentelemetry-collector" apps/monitoring/otel-demo-values.yaml && grep -q "enabled: true" apps/monitoring/otel-demo-values.yaml; then
-            grep -q "13133" /tmp/otel-demo.yaml && echo "✅ collector 13133 found" || (echo "collector enabled but 13133 not found"; exit 1)
-          else
-            echo "✅ collector disabled by design - using Alloy instead, skipping 13133 check"
-          fi
+          echo "=== OTel Demo microservices - 0 probes expected upstream ==="
+          echo "OTel Demo livenessProbe count:"
+          grep -c "livenessProbe:" /tmp/otel-demo.yaml || echo "0"
 
-          echo "=== Prometheus Stack - should have >=4 probes ==="
+          echo "=== Check collector disabled ==="
+          if grep "opentelemetry-collector:" apps/monitoring/otel-demo-values.yaml | grep -q "enabled: false"; then
+            echo "✅ opentelemetry-collector disabled by design - using Alloy, skipping 13133"
+          else
+            echo "collector enabled - checking 13133"
+            grep -q "13133" /tmp/otel-demo.yaml && echo "✅ 13133 found" || (echo "::error:: 13133 not found"; exit 1)
+          fi
+          
+          echo "=== Prometheus Stack should have >=4 probes ==="
           helm template test-prom prometheus-community/kube-prometheus-stack --version 58.2.2 -n monitoring -f apps/monitoring/prometheus-grafana-values.yaml > /tmp/prom.yaml
-          prom_liveness=$(grep -c "livenessProbe:" /tmp/prom.yaml || true)
+          prom_liveness=$(grep -c "livenessProbe:" /tmp/prom.yaml)
           echo "Prometheus stack livenessProbe: $prom_liveness"
-          test $prom_liveness -ge 4 || (echo "::error:: Expected >=4 probes in prometheus stack, found $prom_liveness"; exit 1)
+          if [ "$prom_liveness" -lt 4 ]; then
+            echo "Expected >=4 probes, found $prom_liveness"
+            exit 1
+          fi
           echo "✅ Prometheus/Grafana probes OK: $prom_liveness found"
 
           echo "=== Alloy / Loki / Tempo also have probes ==="
           helm template alloy grafana/alloy --version 0.9.0 -n monitoring -f apps/monitoring/alloy-values.yaml > /tmp/alloy.yaml
           grep -q "livenessProbe" /tmp/alloy.yaml && echo "✅ Alloy has probes" || echo "⚠️ Alloy has no probes in this version"
+
+          helm template loki grafana/loki --version 6.6.2 -n monitoring -f apps/monitoring/loki-values.yaml > /tmp/loki.yaml
+          grep -q "livenessProbe" /tmp/loki.yaml && echo "✅ Loki has probes" || echo "⚠️ Loki has no probes in this version"
+
+          helm template tempo grafana/tempo --version 1.10.0 -n monitoring -f apps/monitoring/tempo-values.yaml > /tmp/tempo.yaml
+          grep -q "livenessProbe" /tmp/tempo.yaml && echo "✅ Tempo has probes" || echo "⚠️ Tempo has no probes in this version"
 
       - name: Validate alloy & loki values have resources
         run: |
