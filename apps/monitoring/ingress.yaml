@@ -1,7 +1,6 @@
 # Fix: HTTP is intentionally local-only for k3d lab.
-# Production would use websecure + TLS via cert-manager.
-# All *.local hosts resolve to 127.0.0.1 via /etc/hosts - not internet-exposed.
-# Restricted via Traefik ipAllowList middleware to RFC1918 + loopback.
+# *.local hosts -> 127.0.0.1 via /etc/hosts, not internet-exposed.
+# Production posture: websecure (443) + cert-manager + TLS + WAF/ALB
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -9,13 +8,11 @@ metadata:
   namespace: monitoring
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/router.middlewares: monitoring-local-only@kubernetescrd
     argocd.argoproj.io/sync-wave: "3"
-    hardening.lab/exposure: "local-only - 127.0.0.1/loopback + RFC1918 via ipAllowList"
-    hardening.lab/prod-posture: "prod uses websecure (443) + cert-manager + TLS + WAF"
+    hardening.lab/exposure: "local-only - hosts resolve to 127.0.0.1, not internet-exposed"
+    hardening.lab/prod-posture: "prod uses websecure:443 + cert-manager + TLS + WAF + private VPC"
 spec:
   rules:
-  # This is the Prometheus ingress, which is used to route traffic to the Prometheus service.
   - host: prometheus.local
     http:
       paths:
@@ -25,7 +22,6 @@ spec:
             service:
               name: prometheus-stack-kube-prom-prometheus
               port: { number: 9090 }
-  # This is the Grafana ingress, which is used to route traffic to the Grafana service.
   - host: grafana.local
     http:
       paths:
@@ -35,8 +31,6 @@ spec:
             service:
               name: prometheus-stack-grafana
               port: { number: 80 }
-  
-  # This is the MinIO ingress, which is used to route traffic to the MinIO service.
   - host: minio-console.local
     http:
       paths:
@@ -46,7 +40,6 @@ spec:
             service:
               name: minio-console
               port: { number: 9001 }
-  # This is the Loki ingress, which is used to route traffic to the Loki service.
   - host: loki.local
     http:
       paths:
@@ -56,7 +49,6 @@ spec:
             service:
               name: loki
               port: { number: 3100 }
-  # This is the Tempo ingress, which is used to route traffic to the Tempo service.
   - host: tempo.local
     http:
       paths:
@@ -66,8 +58,6 @@ spec:
             service:
               name: tempo
               port: { number: 3100 }
-  # This is the frontend-proxy ingress, which is used to route traffic to the frontend-proxy service. 
-  # The frontend-proxy service is a reverse proxy that routes traffic to the appropriate backend service based on the request path.  
   - host: shop.local
     http:
       paths:
@@ -78,7 +68,6 @@ spec:
               name: frontend-proxy
               port: { number: 8080 }
 ---
-# Ingress for Argo CD - also local-only
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -86,7 +75,6 @@ metadata:
   namespace: argocd
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/router.middlewares: argocd-local-only@kubernetescrd
     argocd.argoproj.io/sync-wave: "3"
     hardening.lab/exposure: "local-only"
     hardening.lab/prod-posture: "prod uses websecure + TLS"
