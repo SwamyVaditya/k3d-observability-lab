@@ -71,12 +71,14 @@ The OpenTelemetry Demo is consumed as an upstream Helm dependency at version `0.
 
 The rendered upstream chart was inspected to verify the health probes provided by the chart for the following observability workloads:
 
-| Workload | Kubernetes kind | Liveness | Readiness |
-|----------|-----------------|----------|-----------|
-| OpenTelemetry Collector | DaemonSet | ✓ | ✓ |
-| Grafana | Deployment | ✓ | ✓ |
-| Prometheus Server | Deployment | ✓ | ✓ |
-| Jaeger | Deployment | ✓ | ✓ |
+| Workload | Chart | Liveness | Readiness | Note |
+|----------|-------|----------|-----------|------|
+| Alloy | grafana/alloy | ✓ | ✓ | Our collector |
+| Loki | grafana/loki | ✓ | ✓ | |
+| Tempo | grafana/tempo | ✓ | ✓ | |
+| Prometheus | kube-prometheus-stack | ✓ | ✓ | |
+| Grafana | kube-prometheus-stack | ✓ | ✓ | |
+| OTel Demo microservices | opentelemetry-demo | — | — | No probes upstream by design |
 
 This distinction is intentional: the project operates the upstream demo application rather than changing its application-level health-check implementation.
 
