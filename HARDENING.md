@@ -8,6 +8,8 @@ HTTP documented as local-only (`*.local -> 127.0.0.1` via /etc/hosts). Added ann
 ### 2. GitOps Self-Healing - Positive ✅
 **Config:** `prune: true, selfHeal: true` on root + child Applications.
 
+![self-heal demo](./docs/demo-self-heal.gif)
+
 **Live Evidence 2026-09-04 - monitoring/cart:**
 
 ```powershell
