@@ -63,27 +63,32 @@ kubectl -n monitoring get pdb
 Skipped in k3d lab. k3d default CNI (flannel) does not enforce NetworkPolicy.
 In production EKS/GKE, would use Cilium/Calico with default-deny.
 
-### 4. Health Probes — Owned Declaratively + CI-Validated
+### 4. Health Probes — Upstream + CI-Validated
 
-Liveness and readiness probes are **owned declaratively** in `apps/monitoring/otel-demo-values.yaml` for all critical workloads.
+Health probes are intentionally **not overridden in `apps/monitoring/otel-demo-values.yaml`**.
 
-The upstream chart `0.40.10` defaults to empty probes (`livenessProbe: {}` / `readinessProbe: {}`), so probes must be explicitly set in values. This repo sets `httpGet` probes on `/health:8080` for Go/Node services and `/` on `:9092` for Kafka to satisfy chart schema validation.
+The OpenTelemetry Demo is consumed as an upstream Helm dependency at version `0.40.10`. The project does not modify the individual demo application microservices (`cart`, `checkout`, `frontend`, etc.) solely to introduce custom Kubernetes probes.
 
-Validated in two places:
-1. **Template**: `helm template otel-demo open-telemetry/opentelemetry-demo --version 0.40.10 -f apps/monitoring/otel-demo-values.yaml --namespace monitoring` must contain `livenessProbe` and `readinessProbe`
-2. **Live cluster**: `kubectl -n monitoring get deploy cart -o yaml | grep -A3 livenessProbe`
+The rendered upstream chart was inspected to verify the health probes provided by the chart for the following observability workloads:
 
-CI job `validate-hardening` in `.github/workflows/ci.yaml` templates the chart with `--version 0.40.10` and asserts all critical Deployments (`cart`, `checkout`, `frontend`, `frontend-proxy`, `payment`, `kafka`) contain probes and `resources.requests/limits`. The build fails if hardening is missing.
+| Workload | Kubernetes kind | Liveness | Readiness |
+|----------|-----------------|----------|-----------|
+| OpenTelemetry Collector | DaemonSet | ✓ | ✓ |
+| Grafana | Deployment | ✓ | ✓ |
+| Prometheus Server | Deployment | ✓ | ✓ |
+| Jaeger | Deployment | ✓ | ✓ |
+
+This distinction is intentional: the project operates the upstream demo application rather than changing its application-level health-check implementation.
+
+#### Validation
+
+The exact chart version and repository values are rendered in CI:
 
 ```bash
-# Template validation (no cluster needed)
-helm template otel-demo open-telemetry/opentelemetry-demo --version 0.40.10 \
-  -f apps/monitoring/otel-demo-values.yaml --namespace monitoring > /tmp/otel-demo.yaml
-grep -A3 "livenessProbe:" /tmp/otel-demo.yaml | head -20
-
-# Live cluster verification
-kubectl -n monitoring get deploy cart -o jsonpath='{.spec.template.spec.containers[0].livenessProbe}'
-kubectl -n monitoring get deploy cart -o jsonpath='{.spec.template.spec.containers[0].readinessProbe}'
+helm template otel-demo open-telemetry/opentelemetry-demo \
+  --version 0.40.10 \
+  -f apps/monitoring/otel-demo-values.yaml \
+  --namespace monitoring
 ```
 
 ### 5. Runbook
