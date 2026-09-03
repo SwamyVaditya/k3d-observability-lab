@@ -105,6 +105,37 @@ Hardening:
 - Annotated `hardening.lab/exposure: local-only`
 - Prod posture documented: `websecure` + cert-manager + TLS + WAF/ALB
 
+### 7. GitOps Drift Detection & Self-Healing - Live Evidence
+
+**Config:**
+All Applications have:
+```yaml
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+```
+
+#### Experiment 2026-09-04 - monitoring/cart:
+
+```powershell
+PS> kubectl -n monitoring scale deploy cart --replicas=0
+deployment.apps/cart scaled
+
+PS> kubectl -n monitoring get deploy cart -w
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+cart   0/1     1            0           2d23h
+cart   1/1     1            1           2d23h  # <-- ArgoCD self-healed, no human action
+
+PS> kubectl -n monitoring get deploy cart
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+cart   1/1     1            1           3d
+```
+
+**Result:** ✅ Drift detected (replicas 0 vs desired 1) → ArgoCD restored to 1 automatically in <60s. No manual kubectl scale --replicas=1 needed.
+
+**Why it matters:** Proves Git is source of truth. Even if someone scales down / deletes manually, cluster converges back.
+
 ## Real Production vs Lab
 
 | Item | This Lab | Real Production (EKS) |
