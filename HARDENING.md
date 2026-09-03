@@ -27,3 +27,6 @@ attempt 2: spec.replicas=1
 - `scripts/demo-self-heal.sh`
 
 **Interview line:** "I prove GitOps self-heal with live drift experiment, and distinguish lab vs prod posture."
+
+### 4. NetworkPolicy - Intentionally Excluded
+No NetworkPolicy in k3d (Flannel). Lab focus is observability/SRE, not CNI replacement. Production mapping is Cilium/Calico with default-deny. Documented as intentional trade-off, not omission.

@@ -59,9 +59,18 @@ kubectl -n monitoring get pdb
 # cart-pdb, checkout-pdb, frontend-pdb, kafka-pdb -> minAvailable: 1
 ```
 
-### 3. NetworkPolicies
-Skipped in k3d lab. k3d default CNI (flannel) does not enforce NetworkPolicy.
-In production EKS/GKE, would use Cilium/Calico with default-deny.
+### 3. NetworkPolicy - Intentionally Excluded (Design Decision)
+
+**Decision:** No NetworkPolicies in k3d lab.
+
+**Rationale:** Objective of this lab is observability / SRE (traces, metrics, logs, SLOs, chaos) rather than replacing k3d's networking stack. k3d uses Flannel (non-policy-enforcing) by default. Adding Cilium just to tick a security box adds operational complexity without SRE value for this repo.
+
+**Production mapping:**
+- CNI: Cilium / Calico with policy enforcement
+- Policies: default-deny + explicit allow for frontend->backend, backend->DB, monitoring scrapes
+- Documented in `hardening.lab/prod-posture` annotations
+
+**Trade-off accepted:** Lab shows awareness, not enforcement. No security debt hidden.
 
 ### 4. Health Probes — Upstream + CI-Validated
 
