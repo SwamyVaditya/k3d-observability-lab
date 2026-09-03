@@ -118,6 +118,8 @@ syncPolicy:
 
 #### Experiment 2026-09-04 - monitoring/cart:
 
+**Manual Test**
+
 ```powershell
 PS> kubectl -n monitoring scale deploy cart --replicas=0
 deployment.apps/cart scaled
@@ -128,6 +130,51 @@ cart   0/1     1            0           2d23h
 cart   1/1     1            1           2d23h  # <-- ArgoCD self-healed, no human action
 
 PS> kubectl -n monitoring get deploy cart
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+cart   1/1     1            1           3d
+```
+
+**Automated Demo Script:**
+
+```powershell
+PS C:\1. OPS\Repos\k3d-observability-lab> bash scripts/demo-self-heal.sh
+=== D1 Self-Healing Demo: monitoring/cart ===
+1. Current state (desired):
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+cart   1/1     1            1           3d
+
+2. Checking ArgoCD selfHeal config:
+    annotations:
+      argocd.argoproj.io/sync-wave: "2"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"argoproj.io/v1alpha1","kind":"Application","metadata":{"annotations":{"argocd.argoproj.io/sync-wave":"2"},"labels":{"argocd.argoproj.io/instance":"root-observability-app"},"name":"alloy","namespace":"argocd"},"spec":{"destination":{"namespace":"monitoring","server":"https://kubernetes.default.svc"},"project":"observability-lab","sources":[{"chart":"alloy","helm":{"valueFiles":["$GitRepo/apps/monitoring/alloy-values.yaml"]},"repoURL":"https://grafana.github.io/helm-charts","targetRevision":"0.9.0"},{"ref":"GitRepo","repoURL":"https://github.com/SwamyVaditya/k3d-observability-lab.git","targetRevision":"main"}],"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}
+    creationTimestamp: "2026-08-31T22:17:10Z"
+    generation: 462
+    labels:
+--
+      targetRevision: main
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+  status:
+    controllerNamespace: argocd
+    health:
+--
+        retry:
+          limit: 5
+        sync:
+
+3. Simulating drift — scale to 0:
+deployment.apps/cart scaled
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+cart   0/0     0            0           3d
+
+4. Watching for ArgoCD self-heal (up to 3min)...
+  attempt 1: spec.replicas=0 ready=
+  attempt 2: spec.replicas=1 ready=1
+
+✅ Self-healed! ArgoCD restored replicas=1
 NAME   READY   UP-TO-DATE   AVAILABLE   AGE
 cart   1/1     1            1           3d
 ```
