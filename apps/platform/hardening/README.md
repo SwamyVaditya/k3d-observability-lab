@@ -96,6 +96,15 @@ helm template otel-demo open-telemetry/opentelemetry-demo \
 ### 5. Runbook
 `docs/runbooks/checkout-slo-burning.md` - complete runbook for `CheckoutSLOBurning` alert.
 
+### 6. Ingress Exposure
+
+Current `apps/monitoring/ingress.yaml` uses `web` (HTTP) intentionally for k3d local dev with `*.local` hosts pointing to 127.0.0.1.
+
+Hardening:
+- Traefik Middleware `local-only` ipAllowList restricts to loopback + RFC1918
+- Annotated `hardening.lab/exposure: local-only`
+- Prod posture documented: `websecure` + cert-manager + TLS + WAF/ALB
+
 ## Real Production vs Lab
 
 | Item | This Lab | Real Production (EKS) |

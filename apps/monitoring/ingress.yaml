@@ -1,3 +1,7 @@
+# Fix: HTTP is intentionally local-only for k3d lab.
+# Production would use websecure + TLS via cert-manager.
+# All *.local hosts resolve to 127.0.0.1 via /etc/hosts - not internet-exposed.
+# Restricted via Traefik ipAllowList middleware to RFC1918 + loopback.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -5,7 +9,10 @@ metadata:
   namespace: monitoring
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: monitoring-local-only@kubernetescrd
     argocd.argoproj.io/sync-wave: "3"
+    hardening.lab/exposure: "local-only - 127.0.0.1/loopback + RFC1918 via ipAllowList"
+    hardening.lab/prod-posture: "prod uses websecure (443) + cert-manager + TLS + WAF"
 spec:
   rules:
   # This is the Prometheus ingress, which is used to route traffic to the Prometheus service.
@@ -39,7 +46,6 @@ spec:
             service:
               name: minio-console
               port: { number: 9001 }
-  
   # This is the Loki ingress, which is used to route traffic to the Loki service.
   - host: loki.local
     http:
@@ -50,8 +56,7 @@ spec:
             service:
               name: loki
               port: { number: 3100 }
-
-# This is the Tempo ingress, which is used to route traffic to the Tempo service.
+  # This is the Tempo ingress, which is used to route traffic to the Tempo service.
   - host: tempo.local
     http:
       paths:
@@ -61,7 +66,6 @@ spec:
             service:
               name: tempo
               port: { number: 3100 }
-
   # This is the frontend-proxy ingress, which is used to route traffic to the frontend-proxy service. 
   # The frontend-proxy service is a reverse proxy that routes traffic to the appropriate backend service based on the request path.  
   - host: shop.local
@@ -74,8 +78,7 @@ spec:
               name: frontend-proxy
               port: { number: 8080 }
 ---
-
-# Ingress for Argo CD
+# Ingress for Argo CD - also local-only
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -83,7 +86,10 @@ metadata:
   namespace: argocd
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: argocd-local-only@kubernetescrd
     argocd.argoproj.io/sync-wave: "3"
+    hardening.lab/exposure: "local-only"
+    hardening.lab/prod-posture: "prod uses websecure + TLS"
 spec:
   rules:
   - host: argocd.local
