@@ -118,7 +118,7 @@ jobs:
           print("✅ All critical workloads have resources owned in values.yaml")
           PY
 
-            - name: Validate upstream probes inherited (infra components)
+      - name: Validate upstream probes inherited (infra components)
         run: |
           echo "=== OTel Demo microservices - 0 probes expected upstream ==="
           echo "OTel Demo livenessProbe count:"
