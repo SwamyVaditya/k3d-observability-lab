@@ -1,47 +1,58 @@
 # Runbook: Checkout SLO Burning
 
-**Alert:** `CheckoutSLOBurning`, `CheckoutErrorBudgetExhausted`
-**Severity:** critical (0.5% burn) / page (2% burn)
-**SLO:** Checkout error rate < 0.5% over 5m
-**Team:** app
-**Service:** frontend / checkout / kafka (all in `monitoring` namespace)
+**Alert:** `CheckoutSLOBurning` (2x burn), `CheckoutSLOFastBurn` (10x burn) | 
+**Severity:** warning (2x) / critical (10x) | 
+**SLO:** Checkout 99.5% availability. Allowed error budget = 0.5% (0.005)
+**Team:** app | 
+**Service:** frontend / checkout / kafka (all in `monitoring` namespace) | 
 **Cluster:** k3d-observability-lab
 
 ---
 
 ## Summary
 
-Checkout failure rate exceeded SLO. Customers cannot place orders. Orders API returning 500s.
+Checkout failure rate is burning error budget faster than allowed.
 
-- `CheckoutSLOBurning`: `slo:checkout:error_rate:5m > 0.005` for 2m → 0.5% threshold
-- `CheckoutErrorBudgetExhausted`: `slo:checkout:error_rate:5m > 0.02` for 5m → 4x burn, page immediately
-- `CheckoutTrafficAbsent`: `slo:checkout:traffic:5m == 0` for 15m → no traffic
+Burn rate definition (Google SRE Workbook):
+```
+burn_rate = observed_error_rate / allowed_error_rate
+allowed_error_rate = 0.005 (0.5% for 99.5% SLO)
+1x burn = 0.5% errors (exactly at budget)
+2x burn = 1.0% errors (SLOBurning)
+10x burn = 5.0% errors (FastBurn)
+```
 
-In this lab, all demo app components (frontend, checkout, cart, kafka) and observability stack (prometheus, grafana, alertmanager) are in `monitoring` namespace. Argo CD is in `argocd` namespace.
+Customers cannot place orders when burning. Orders API returning 500s.
+
+- `CheckoutSLOBurning`: `slo:checkout:burn_rate:5m > 2 AND burn_rate:1h > 2` for 2m → multi-window, avoids flapping
+- `CheckoutSLOFastBurn`: `slo:checkout:burn_rate:5m > 10` for 2m → ~5% errors, page immediately
+- `CheckoutTrafficAbsent`: `slo:checkout:traffic:5m == 0` for 15m → no traffic (manual load-gen needed in this lab)
+
+All workloads in `monitoring` namespace (k3d simplification). Argo CD is in `argocd` namespace.
 
 ---
 
 ## Symptoms
 
 - Slack `#alerts-sre` messages:
-  - `:rotating_light: [FIRING] CheckoutSLOBurning (1x) • critical | slo=checkout`
-  - `Checkout failure is 99.98% (budget 99.98% used). Current value: 0.999... Check: kubectl -n monitoring get pods | grep kafka`
-- Grafana:
-  - Dashboard: `SRE > 00 - Master SRE - One Screen` (uid: `master-sre-one`)
+  - `:rotating_light: [FIRING] CheckoutSLOBurning - burning at 4.2x`
+  - `:rotating_light: [FIRING] CheckoutSLOFastBurn - burning at 120x` (when kafka down, error_rate ~100%)
+
+- Grafana: Dashboard `SRE > 00 - Master SRE - One Screen` (uid: `master-sre-one`)
   - Panels:
     - `Traffic - req/s` ~ 2-6 req/s (if curl loop running)
-    - `Errors - Error % (5m)` > 0.5%
-    - `SLO - Burn Rate` > 0.5% line
+    - `SLO - True Burn Rate (checkout)` > 2x line
+    - `Success % 5m` drops < 99.5%
     - `Business - Orders / min` → 0
     - `Current Errors - checkout 500/s` spiking
-- Prometheus:
-  - Alerts → `CheckoutSLOBurning` FIRING, Value ~0.99
+
+- Prometheus: Alerts → `CheckoutSLOBurning` FIRING, Value = burn multiplier e.g. 4.0
 
 ---
 
 ## Impact
 
-- **Business:** Orders/min drops to 0. No revenue.
+- **Business:** Orders/min drops to 0. At 2x burn, 28d budget exhausts in 14d. At 10x burn, in 2.8d.
 - **User:** `POST http://shop.local/api/checkout?currencyCode=USD` returns 500.
 - **Dependencies:** Cart, Product APIs may still work (33% error rate if only checkout failing).
 
@@ -49,16 +60,21 @@ In this lab, all demo app components (frontend, checkout, cart, kafka) and obser
 
 ## Diagnosis (in order)
 
-### 1. Confirm alert is real (not stale)
+### 1. Confirm burn rate is real (not stale)
 
-```powershell
+```
 # Port-forward Prometheus
 kubectl -n monitoring port-forward svc/prometheus-stack-kube-prom-prometheus 9090:9090
-# Open http://localhost:9090 and query:
-# slo:checkout:error_rate:5m
-# sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m]))
-# sum(rate(app_frontend_requests_total{target=~".*checkout.*",status="500"}[5m]))
 
+# Open http://localhost:9090 and query:
+slo:checkout:error_rate:5m
+slo:checkout:error_rate:1h
+slo:checkout:burn_rate:5m
+slo:checkout:burn_rate:1h
+slo:checkout:success_percent:5m
+slo:checkout:traffic:5m
+
+# Expected: error_rate:5m=0.02 (2%) => burn_rate:5m=4x
 # Check Alertmanager status
 kubectl -n monitoring get alertmanager
 kubectl -n monitoring get pods -l app.kubernetes.io/name=alertmanager
@@ -67,17 +83,13 @@ kubectl -n monitoring logs -l app.kubernetes.io/name=alertmanager --tail=20
 
 ### 2. Check demo services (root cause is usually kafka)
 
-```powershell
+```
 kubectl -n monitoring get pods | Select-String "kafka|checkout|frontend|cart|load"
 kubectl -n monitoring get pods -o wide
-
-# Most common cause: kafka disabled or crashed for chaos test
 kubectl -n monitoring logs -l app=checkout --tail=100 | Select-String -Pattern "kafka|KAFKA|broker|timeout|500"
 kubectl -n monitoring logs -l app=kafka --tail=100
 kubectl -n monitoring describe pod -l app=kafka
 kubectl -n monitoring describe pod -l app=checkout
-
-# Check if kafka was scaled to 0
 kubectl -n monitoring get deployment kafka
 ```
 
@@ -85,7 +97,7 @@ kubectl -n monitoring get deployment kafka
 
 In this repo, `load-generator.enabled: false` by default. You must generate traffic manually:
 
-```powershell
+```
 while ($true) {
   curl.exe -s http://shop.local/api/products > $null
   curl.exe -s http://shop.local/api/cart > $null
@@ -96,14 +108,14 @@ while ($true) {
 
 If no loop running → `CheckoutTrafficAbsent` will fire after 15m (expected).
 
-```powershell
+```
 kubectl -n monitoring get deployment -l app=load-generator
 kubectl -n monitoring logs -l app=load-generator --tail=30
 ```
 
 ### 4. Check dependencies
 
-```powershell
+```
 kubectl -n monitoring get pods
 kubectl -n monitoring logs -l app=cart --tail=50
 kubectl -n monitoring logs -l app=frontend --tail=50
@@ -115,7 +127,7 @@ kubectl -n monitoring logs -l app=frontend --tail=50
 
 ### Quick fix - Restore kafka (fixes 90% of cases)
 
-```powershell
+```
 # If kafka was scaled to 0 for chaos testing:
 kubectl -n monitoring scale deployment kafka --replicas=1
 kubectl -n monitoring rollout status deployment/kafka
@@ -125,14 +137,14 @@ kubectl -n monitoring get pods -w
 
 ### If checkout pod crashlooping
 
-```powershell
+```
 kubectl -n monitoring delete pod -l app=checkout
 kubectl -n monitoring rollout restart deployment/checkout
 ```
 
 ### If frontend down
 
-```powershell
+```
 kubectl -n monitoring rollout restart deployment/frontend
 kubectl -n monitoring rollout restart deployment/frontendproxy
 ```
@@ -141,26 +153,44 @@ kubectl -n monitoring rollout restart deployment/frontendproxy
 
 Start the manual curl loop (see Diagnosis step 3) or:
 
-```powershell
+```
 kubectl -n monitoring rollout restart deployment/load-generator
 ```
 
-### Verify fix
+### Verify fix - burn should drop <1x
 
-```powershell
+```
 curl.exe -s -X POST "http://shop.local/api/checkout?currencyCode=USD" -i
 # Expect 200, not 500
 
 # Watch metrics recover (2-3 minutes)
-# Query in Prometheus: sum(rate(app_frontend_requests_total{target=~".*checkout.*",status!~"5.."}[5m])) * 60
-# Should go from 0 to >0
+# In Prometheus:
+# slo:checkout:burn_rate:5m < 1
+# slo:checkout:success_percent:5m > 99.5
+# sum(rate(app_frontend_requests_total{target=~".*checkout.*",status!~"5.."})) * 60 > 0
 
 # Grafana: SRE > 00 - Master SRE - One Screen
 # Business - Orders / min should spike
-# Error % should drop < 0.5%
+# Success % should rise > 99.5%
 ```
 
 Wait for Slack: `:white_check_mark: [RESOLVED] CheckoutSLOBurning`
+
+---
+
+## Why not full error-budget accounting?
+
+Full SLO implementation needs 28d window with long-term storage (Thanos/Cortex/Mimir).
+
+In k3d lab with local Prometheus (hours retention), we approximate with true burn-rate.
+
+- `slo:checkout:success_percent:5m` = current success % in 5m window, NOT remaining budget over 28d.
+- `slo:checkout:burn_rate:5m` = `error_rate:5m / 0.005` = how fast we are burning.
+- `budget_remaining_percent` is kept as deprecated alias for dashboard compat.
+
+This is acceptable for portfolio if documented (this runbook).
+
+Production mapping: Thanos + recording rules over 1h/6h/1d/28d + budget burn-down dashboard + multi-window multi-burn-rate alerts (1h/5m/6h).
 
 ---
 
@@ -168,14 +198,13 @@ Wait for Slack: `:white_check_mark: [RESOLVED] CheckoutSLOBurning`
 
 ### Alertmanager not firing to Slack
 
-**Symptoms:** `kubectl -n monitoring logs -l app.kubernetes.io/name=alertmanager` shows:
-`can't evaluate field Value in type template.Alert` or `notify retry canceled`
+**Symptoms:** `kubectl -n monitoring logs -l app.kubernetes.io/name=alertmanager` shows: `can't evaluate field Value in type template.Alert` or `notify retry canceled`
 
 **Cause:** Template used `.Value` (Prometheus) instead of `.Annotations.summary` (Alertmanager).
 
 **Fix:** Check `apps/monitoring/prometheus-grafana-values.yaml`:
 
-```yaml
+```
 alertmanager:
   enabled: true
   config:
@@ -203,14 +232,11 @@ alertmanager:
         slack_configs:
           - channel: '#alerts-sre'
             send_resolved: true
-            title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
-            text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
-  alertmanagerSpec:
-    secrets:
-      - alertmanager-slack
+            title: '[{{.Status | toUpper }}] {{.GroupLabels.alertname }}'
+            text: '{{ range.Alerts }}{{.Annotations.summary }}{{ end }}'
 ```
 
-Check secret mount path must be: `/etc/alertmanager/secrets/alertmanager-slack/slack_api_url` (not `/etc/alertmanager/secrets/slack_api_url`)
+Check secret mount path must be: `/etc/alertmanager/secrets/alertmanager-slack/slack_api_url`
 
 If `kubectl -n monitoring get alertmanager` shows `Reconciled=False` with `undefined receiver "null"`:
 - Add dummy receiver `- name: 'null'` to fix Watchdog route
@@ -219,9 +245,9 @@ If `kubectl -n monitoring get alertmanager` shows `Reconciled=False` with `undef
 
 ### KubeControllerManagerDown / KubeProxyDown / KubeSchedulerDown firing in k3d
 
-These are expected false positives in k3d (k3d doesn't run those components as Prometheus targets). Disabled in values:
+These are expected false positives in k3d. Disabled in values:
 
-```yaml
+```
 kubeControllerManager:
   enabled: false
 kubeScheduler:
@@ -234,16 +260,15 @@ etcd:
 
 ### AlertmanagerClusterCrashlooping firing after restarts
 
-Expected after `rollout restart` or deleting StatefulSet. Query: `changes(process_start_time_seconds{job="prometheus-stack-kube-prom-alertmanager",namespace="monitoring"}[10m]) > 4`
+Expected after `rollout restart` or deleting StatefulSet. Query: `changes(process_start_time_seconds{job="prometheus-stack-kube-prom-alertmanager",namespace="monitoring"}) > 4`
 
 Will auto-resolve after 10m of stable run. No action needed.
 
 ### Dashboard panels showing 0 or No data
 
-- `Traffic - req/s` shows 0: query window `[1m]` too short for low manual curl traffic. Use `[5m]`.
+- `Traffic - req/s` shows 0: query window `` too short for low manual curl traffic. Use ``.
 - `Business - Orders / min` shows No data: normal when all checkouts are 500s (0 successful). Use `or vector(0)` to show 0.
-
-See `apps/monitoring/dashboards/08-master-sre.yaml` for fixed queries.
+- See `apps/monitoring/dashboards/08-master-sre.yaml` for fixed queries.
 
 ---
 
@@ -254,6 +279,7 @@ See `apps/monitoring/dashboards/08-master-sre.yaml` for fixed queries.
 - Set `load-generator.enabled: true` for continuous traffic or use synthetic monitoring
 - Set `alertmanager.config.route.repeat_interval: 4h` to avoid Slack spam (was 5m)
 - Group alerts by `alertname, slo, severity` to avoid 1 message per alert
+- Use multi-window burn-rate (5m + 1h) to avoid flapping on sparse traffic
 
 ---
 
@@ -263,42 +289,56 @@ See `apps/monitoring/dashboards/08-master-sre.yaml` for fixed queries.
 - Prometheus: `http://prometheus.local` → Alerts → `CheckoutSLOBurning`
 - Alertmanager: `kubectl -n monitoring port-forward svc/prometheus-stack-kube-prom-alertmanager 9093:9093`
 - Argo CD: `http://argocd.local` → namespace `argocd` → app `prometheus-stack`
-- Slack: `#alerts-sre` (T0BNY6DFKAT / C0BPFUPHYGZ)
+- Slack: `#alerts-sre`
 - Otel Demo Shop: `http://shop.local`
 
 ---
 
-## Recording Rules Reference
+## Recording Rules Reference - TRUE burn rate
 
-Located in `apps/monitoring/prometheus-rules/otel-demo-slos.yaml` (or `monitoring/otel-demo-slos-...` ConfigMap):
+Located in `apps/monitoring/slos/rules.yaml`:
 
-```yaml
+```
 - record: slo:checkout:error_rate:5m
-  expr: |
-    sum(rate(app_frontend_requests_total{target="/api/checkout",status="500"}[5m]))
-    /
-    (sum(rate(app_frontend_requests_total{target="/api/checkout"}[5m])) + 0.0001)
+  expr: sum(rate(app_frontend_requests_total{target="/api/checkout",status="500"})) / (sum(rate(...))+0.0001)
+
+- record: slo:checkout:error_rate:1h
+  expr: sum(rate(...)) / (sum(rate(...))+0.0001)
+
+- record: slo:checkout:slo_target
+  expr: "vector(0.995)"
+
+- record: slo:checkout:error_budget
+  expr: "vector(0.005)"
+
+- record: slo:checkout:burn_rate:5m
+  expr: slo:checkout:error_rate:5m / 0.005
+
+- record: slo:checkout:burn_rate:1h
+  expr: slo:checkout:error_rate:1h / 0.005
+
+- record: slo:checkout:success_percent:5m
+  expr: 100 * (1 - slo:checkout:error_rate:5m)
 
 - record: slo:checkout:traffic:5m
-  expr: sum(rate(app_frontend_requests_total{target="/api/checkout"}[5m]))
-
-- record: slo:checkout:budget_remaining_percent
-  expr: 100 * (1 - slo:checkout:error_rate:5m)
+  expr: sum(rate(app_frontend_requests_total{target="/api/checkout"}))
 ```
 
 Alerts:
 
-```yaml
-- alert: CheckoutSLOBurning
-  expr: slo:checkout:error_rate:5m > 0.005
-  for: 2m
-  labels: { severity: critical, slo: checkout, team: app }
-  
-- alert: CheckoutErrorBudgetExhausted
-  expr: slo:checkout:error_rate:5m > 0.02
-  for: 5m
-  labels: { severity: page, slo: checkout, team: app }
 ```
+- alert: CheckoutSLOBurning
+  expr: slo:checkout:burn_rate:5m > 2 and slo:checkout:burn_rate:1h > 2
+  for: 2m
+  labels: { severity: warning, slo: checkout }
+
+- alert: CheckoutSLOFastBurn
+  expr: slo:checkout:burn_rate:5m > 10
+  for: 2m
+  labels: { severity: critical, slo: checkout }
+```
+
+Multi-window pattern prevents flapping on low traffic.
 
 ---
 
@@ -322,47 +362,73 @@ k3d-observability-lab/
 │   └── workflows/
 │       └── ci.yaml
 ├── apps/
-│   └── monitoring/
-│       ├── dashboards/
-│       │   ├── 01-infra-cluster.yaml
-│       │   ├── 02-infra-k8s-use.yaml
-│       │   ├── 03-app-red.yaml
-│       │   ├── 04-app-business.yaml
-│       │   ├── 05-logs.yaml
-│       │   ├── 06-traces.yaml
-│       │   ├── 08-master-sre.yaml
-│       │   └── test-dashboard.yaml
-│       ├── slos/
-│       │   ├── dashboard.yaml
-│       │   └── rules.yaml
-│       ├── alloy-app.yaml
-│       ├── alloy-values.yaml
-│       ├── dashboards-app.yaml
-│       ├── ingress.yaml
-│       ├── loki-app.yaml
-│       ├── loki-values.yaml
-│       ├── minio-app.yaml
-│       ├── minio-sealed-secret.yaml
-│       ├── minio-values.yaml
-│       ├── otel-demo-app.yaml
-│       ├── otel-demo-values.yaml
-│       ├── prometheus-app.yaml
-│       ├── prometheus-grafana-values.yaml
-│       ├── sealed-alertmanager-slack.yaml
-│       ├── tempo-app.yaml
-│       └── tempo-values.yaml
+│   ├── monitoring/
+│   │   ├── dashboards/
+│   │   │   ├── 01-infra-cluster.yaml
+│   │   │   ├── 02-infra-k8s-use.yaml
+│   │   │   ├── 03-app-red.yaml
+│   │   │   ├── 04-app-business.yaml
+│   │   │   ├── 05-logs.yaml
+│   │   │   ├── 06-traces.yaml
+│   │   │   ├── 08-master-sre.yaml
+│   │   │   └── test-dashboard.yaml
+│   │   ├── slos/
+│   │   │   ├── dashboard.yaml
+│   │   │   └── rules.yaml
+│   │   ├── alloy-app.yaml
+│   │   ├── alloy-values.yaml
+│   │   ├── dashboards-app.yaml
+│   │   ├── hardening-app.yaml
+│   │   ├── ingress.yaml
+│   │   ├── loki-app.yaml
+│   │   ├── loki-values.yaml
+│   │   ├── minio-app.yaml
+│   │   ├── minio-sealed-secret.yaml
+│   │   ├── minio-values.yaml
+│   │   ├── otel-demo-app.yaml
+│   │   ├── otel-demo-values.yaml
+│   │   ├── prometheus-app.yaml
+│   │   ├── prometheus-grafana-values.yaml
+│   │   ├── sealed-alertmanager-slack.yaml
+│   │   ├── tempo-app.yaml
+│   │   └── tempo-values.yaml
+│   └── platform/
+│       └── hardening/
+│           ├── 02-poddisruptionbudgets.yaml
+│           └── README.md
 ├── argocd/
+│   ├── projects/
+│   │   └── observability-project.yaml
 │   └── root-app.yaml
 ├── bootstrap/
-│   ├── argocd-install.yaml
 │   └── main.tf
 ├── clusters/
 │   └── observability-cluster.yaml
 ├── docs/
-│   └── runbooks/
-│       └── checkout-slo-burning.md
+│   ├── images/
+│   │   ├── diagram1_dark.png
+│   │   ├── diagram1_light.png
+│   │   ├── diagram2_dark_new.png
+│   │   ├── diagram2_dark.png
+│   │   ├── diagram2_light_new.png
+│   │   └── diagram2_light.png
+│   ├── runbooks/
+│   │   └── checkout-slo-burning.md
+│   ├── architecture.md
+│   ├── demo-self-heal.gif
+│   ├── failure-scenarios.md
+│   └── key-decisions.md
+├── scripts/
+│   └── demo-self-heal.sh
+├── .gitattributes
 ├── .gitignore
+├── alertmanager-slack-example.yaml
+├── HARDENING.md
+├── minio-secret-example.yaml
 └── README.md
+
 ```
 
 All workloads in `monitoring` namespace (k3d lab simplification). No `otel-demo` namespace exists.
+```
+
