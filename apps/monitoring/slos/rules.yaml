@@ -11,49 +11,77 @@ spec:
     - name: checkout-slo
       interval: 30s
       rules:
+        # --- base metrics ---
         - record: slo:checkout:error_rate:5m
           expr: |
-            sum(rate(app_frontend_requests_total{target="/api/checkout",status="500"}[5m]))
+            sum(rate(app_frontend_requests_total{target="/api/checkout",status="500"}))
             /
-            (sum(rate(app_frontend_requests_total{target="/api/checkout"}[5m])) + 0.0001)
+            (sum(rate(app_frontend_requests_total{target="/api/checkout"})) + 0.0001)
+        - record: slo:checkout:error_rate:1h
+          expr: |
+            sum(rate(app_frontend_requests_total{target="/api/checkout",status="500"}))
+            /
+            (sum(rate(app_frontend_requests_total{target="/api/checkout"})) + 0.0001)
         - record: slo:checkout:traffic:5m
-          expr: sum(rate(app_frontend_requests_total{target="/api/checkout"}[5m]))
-        - record: slo:checkout:budget_remaining_percent
+          expr: sum(rate(app_frontend_requests_total{target="/api/checkout"}))
+
+        # --- SLO definition: 99.5% = 0.5% error budget ---
+        - record: slo:checkout:slo_target
+          expr: 0.995
+        - record: slo:checkout:error_budget
+          expr: 0.005
+
+        # --- SLO1 FIX: TRUE burn rate ---
+        - record: slo:checkout:burn_rate:5m
+          expr: slo:checkout:error_rate:5m / 0.005
+        - record: slo:checkout:burn_rate:1h
+          expr: slo:checkout:error_rate:1h / 0.005
+
+        # --- SLO2 FIX: rename to what it actually is ---
+        - record: slo:checkout:success_percent:5m
           expr: 100 * (1 - slo:checkout:error_rate:5m)
+        # deprecated alias for dashboard compat
+        - record: slo:checkout:budget_remaining_percent
+          expr: slo:checkout:success_percent:5m
+
+        # --- other SLOs ---
         - record: slo:all:error_rate:5m
           expr: |
-            sum(rate(app_frontend_requests_total{status=~"5.."}[5m]))
+            sum(rate(app_frontend_requests_total{status=~"5.."}))
             /
-            (sum(rate(app_frontend_requests_total[5m])) + 0.0001)
+            (sum(rate(app_frontend_requests_total)) + 0.0001)
         - record: slo:cart:p95_latency:5m
           expr: |
             histogram_quantile(0.95,
-              sum by(le) (rate(http_server_request_duration_seconds_bucket{job="cart"}[5m]))
+              sum by(le) (rate(http_server_request_duration_seconds_bucket{job="cart"}))
             )
 
-        # --- SLO Alerts ---
+        # --- SLO Alerts - now on TRUE burn rate (SLO3 fix) ---
         - alert: CheckoutSLOBurning
-          expr: slo:checkout:error_rate:5m > 0.005
+          expr: |
+            slo:checkout:burn_rate:5m > 2
+            and
+            slo:checkout:burn_rate:1h > 2
+          for: 2m
+          labels:
+            severity: warning
+            slo: checkout
+            team: app
+          annotations:
+            summary: "Checkout SLO burning at {{ $value | humanize }}x (error {{ $value | humanizePercentage }} of budget)"
+            description: "Burn rate {{ $value }}x over 0.5% budget. 5m={{ $labels.burn_5m }}, 1h={{ $labels.burn_1h }}. Error rate: slo:checkout:error_rate:5m"
+            runbook_url: "https://github.com/SwamyVaditya/k3d-observability-lab/blob/main/docs/runbooks/checkout-slo-burning.md"
+
+        - alert: CheckoutSLOFastBurn
+          expr: slo:checkout:burn_rate:5m > 10
           for: 2m
           labels:
             severity: critical
             slo: checkout
             team: app
           annotations:
-            summary: "Checkout SLO burning - error rate {{ $value | humanizePercentage }} > 0.5% SLO"
-            description: "Checkout failure is {{ $value | humanizePercentage }} (budget {{ $value | humanizePercentage }} used). Current value: {{ $value }}. Check: kubectl -n otel-demo get pods | grep kafka"
-            runbook_url: "https://github.com/SwamyVaditya/k3d-observability-lab/blob/main/docs/runbooks/checkout-slo-burning.md"
-
-        - alert: CheckoutErrorBudgetExhausted
-          expr: slo:checkout:error_rate:5m > 0.02
-          for: 5m
-          labels:
-            severity: page
-            slo: checkout
-            team: app
-          annotations:
-            summary: "Checkout error budget exhausted - {{ $value | humanizePercentage }} errors"
-            description: "Burn rate 4x SLO ({{ $value | humanizePercentage }}). Immediate action required. Orders failing."
+            summary: "Checkout FAST BURN {{ $value | humanize }}x - immediate action"
+            description: "10x burn = ~5% errors vs 0.5% allowed. Orders failing fast."
 
         - alert: CheckoutTrafficAbsent
           expr: slo:checkout:traffic:5m == 0

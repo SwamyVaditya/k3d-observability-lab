@@ -44,20 +44,21 @@ data:
         },
         {
           "type": "timeseries",
-          "title": "SLO - Burn Rate (checkout) >0.5% = BURNING",
+          "title": "SLO - True Burn Rate (checkout) - 1x = 0.5% budget",
           "gridPos": {"h": 8, "w": 16, "x": 0, "y": 4},
           "targets": [
-            {"expr": "slo:checkout:error_rate:5m * 100", "legendFormat": "Burn 5m %", "datasource": {"uid": "prometheus"}},
-            {"expr": "slo:all:error_rate:5m * 100", "legendFormat": "Burn 5m ALL %", "datasource": {"uid": "prometheus"}},
-            {"expr": "0.5", "legendFormat": "SLO 0.5%"}
+            {"expr": "slo:checkout:burn_rate:5m", "legendFormat": "burn 5m (x)", "datasource": {"uid": "prometheus"}},
+            {"expr": "slo:checkout:burn_rate:1h", "legendFormat": "burn 1h (x)", "datasource": {"uid": "prometheus"}},
+            {"expr": "2", "legendFormat": "2x threshold (warn)", "datasource": {"uid": "prometheus"}},
+            {"expr": "10", "legendFormat": "10x threshold (critical)", "datasource": {"uid": "prometheus"}}
           ]
         },
         {
           "type": "stat",
-          "title": "Error Budget Remaining",
+          "title": "Success % 5m (not real budget remaining)",
           "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
           "targets": [{
-            "expr": "100 * (1 - slo:checkout:error_rate:5m)",
+            "expr": "slo:checkout:success_percent:5m",
             "datasource": {"uid": "prometheus"}
           }],
           "fieldConfig": {
