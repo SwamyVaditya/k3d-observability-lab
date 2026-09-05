@@ -1,3 +1,5 @@
+**Tested shell:** PowerShell 7 on Windows with `kubectl`, `k3d`, `curl.exe`. Commands use `Select-String` (PowerShell) instead of `grep`. On Linux/macOS, replace `Select-String` with `grep` and `curl.exe` with `curl`.
+
 # Runbook: Checkout SLO Burning
 
 **Alert:** `CheckoutSLOBurning` (2x burn), `CheckoutSLOFastBurn` (10x burn) | 

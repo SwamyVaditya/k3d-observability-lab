@@ -9,7 +9,7 @@ Hands-on SRE exercises for the k3d-observability-lab. Each scenario maps to a re
 **Goal:** Practice SLO-based alerting → trace correlation → log inspection → runbook execution.
 
 **Steps:**
-1. **Trigger failure:** Edit `apps/monitoring/otel-demo.values.yaml`: set `OTEL_DEMO_CART_FAILURE_RATE=0.3`, push to Git
+1. **Trigger failure:** Edit `apps/monitoring/otel-demo-values.yaml`: set `OTEL_DEMO_CART_FAILURE_RATE=0.3`, push to Git
 2. **Alert fires:** Grafana → Prometheus → `sum(rate(http_requests_total{service="checkout", status="500"}))` → `firing: CheckoutSLOBurning`
 3. **Investigate metrics:** Grafana Dashboard Checkout panel → `checkout_failure_ratio` spike
 4. **Correlate traces:** Grafana → Tempo → Service `checkout` → Find trace with error → span `kafka` latency 2.5s
@@ -57,7 +57,7 @@ Hands-on SRE exercises for the k3d-observability-lab. Each scenario maps to a re
 ## Scenario 5 — Configuration deployment (Git → CI → Argo)
 
 **Steps:**
-1. Change Git: `frontend.replicaCount: 2` in `apps/monitoring/otel-demo.values.yaml`
+1. Change Git: `frontend.replicaCount: 2` in `apps/monitoring/otel-demo-values.yaml`
 2. GitHub Actions: `ci.yaml` → terraform fmt, helm lint, kubeval, Kyverno check - must be green
 3. Argo syncs: `argocd app get otel-demo` → OutOfSync → SYNC → `kubectl get deployment frontend` → 2
 4. Verify: `shop.local` 2 pods, Prometheus no alerts
