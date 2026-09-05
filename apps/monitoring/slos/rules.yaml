@@ -27,9 +27,9 @@ spec:
 
         # --- SLO definition: 99.5% = 0.5% error budget ---
         - record: slo:checkout:slo_target
-          expr: 0.995
+          expr: "vector(0.995)"
         - record: slo:checkout:error_budget
-          expr: 0.005
+          expr: "vector(0.005)"
 
         # --- SLO1 FIX: TRUE burn rate ---
         - record: slo:checkout:burn_rate:5m
