@@ -162,7 +162,7 @@ Located in `apps/platform/hardening/`:
 
 * **Resource Limits:** Declaratively defined in `apps/monitoring/otel-demo-values.yaml` (e.g., cart 50m/64Mi → 200m/160Mi) and GitOps-synced. Verified via `kubectl -n monitoring get deploy -o jsonpath`. Kyverno enforces in prod.
 * **PodDisruptionBudgets (PDBs):** Configured `minAvailable: 1` for critical components (`cart`, `checkout`, `frontend`, `kafka`) to safely handle voluntary cluster disruptions.
-* **Probes:** Validated liveness and readiness probes (`/health`) across the OpenTelemetry demo microservices.
+* **Health Probes:** Upstream health probes are retained for supported observability components (Prometheus, Loki, Tempo, Alloy, MinIO) and validated through rendered-manifest CI checks (`helm template | grep livenessProbe`). OTel Demo microservices are intentionally not modified with custom probes - upstream image does not expose /health probes, ownership stays upstream.
 * **Runbooks:** Documented incident responses (`docs/runbooks/checkout-slo-burning.md`) for structured failure recovery.
 
 #### 4. Alerting & Incident Response
