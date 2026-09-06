@@ -31,5 +31,11 @@ Why each component was chosen, what alternatives were considered, and what trans
 | Vault for secrets locally | Overkill for local lab. SealedSecrets gives GitOps without external dependency. |
 | EKS for initial dev | Cost ($0.10/hr cluster) + slow feedback (10m create). K3d gives 60s loop. |
 | Remote S3 Terraform backend locally | Overkill for single-operator k3d lab - local state is correct tradeoff. Documented for EKS prod mapping. |
+| Did NOT add | Why |
+| Cilium / NetworkPolicies | Flannel in k3d doesn't enforce, would add CNI replacement complexity without SRE value. Prod: Cilium default-deny. |
+| Kyverno / OPA Gatekeeper | Not deployed locally - would add 2 more controllers. Pattern documented as prod enforcement for limits/probes, validated via CI kubeval instead. |
+| ExternalSecrets Operator | Needs AWS Secrets Manager - overkill for local. SealedSecrets gives GitOps without external dependency. |
+| Service Mesh | No mTLS requirement for OTel Demo, adds sidecar complexity. Prod: optional. |
+| Argo Rollouts / extra backends / scanners | Stack already large (8 apps). Focus is correctness + reproducibility, not technology sprawl. |
 
 ---
