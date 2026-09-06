@@ -32,3 +32,7 @@ attempt 2: spec.replicas=1
 
 ### 4. NetworkPolicy - Intentionally Excluded
 No NetworkPolicy in k3d (Flannel). Lab focus is observability/SRE, not CNI replacement. Production mapping is Cilium/Calico with default-deny. Documented as intentional trade-off, not omission.
+
+
+** PDB minAvailable:1 guarantees voluntary disruption (drain, upgrade, autoscaler) won't take last healthy pod. Does NOT guarantee HA (needs replicas>=2 + topologySpread), does NOT protect against involuntary disruption (node crash, OOMKill).**
+

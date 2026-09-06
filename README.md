@@ -112,7 +112,7 @@ k3d-observability-lab/
 
 Located in `apps/platform/hardening/`:
 
-* **Resource Limits:** Enforced CPU/Memory requests and limits.
+* **Resource Limits:** Declaratively defined in `apps/monitoring/otel-demo-values.yaml` (e.g., cart 50m/64Mi → 200m/160Mi) and GitOps-synced. Verified via `kubectl -n monitoring get deploy -o jsonpath`. Kyverno enforces in prod.
 * **PodDisruptionBudgets (PDBs):** Configured `minAvailable: 1` for critical components (`cart`, `checkout`, `frontend`, `kafka`) to safely handle voluntary cluster disruptions.
 * **Probes:** Validated liveness and readiness probes (`/health`) across the OpenTelemetry demo microservices.
 * **Runbooks:** Documented incident responses (`docs/runbooks/checkout-slo-burning.md`) for structured failure recovery.
@@ -269,6 +269,21 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 ---
 
+### Reproducibility & Persistent Data
+
+**Yes, from Git** — `terraform apply` → Argo CD Root App → 8 apps.
+
+**What survives `k3d cluster delete`:**
+- Docker volumes `k3d-observability-lab-images`, MinIO data (if not pruned). This is intentional — Loki/Tempo chunks persist across restarts to simulate S3 durability.
+- Full clean: `k3d cluster delete --all && docker volume prune -f`
+
+**What is NOT persistent:**
+- Prometheus TSDB (ephemeral), Grafana dashboards (from Git), Argo CD apps (from Git)
+
+`HARDENING.md` documents this.
+
+---
+
 ### GitOps Workflow
 
 1. Modify any application Helm values file, sealed secret, or ingress route under `apps/monitoring/`.
@@ -286,7 +301,7 @@ Practice production incidents hands-on - each maps to your LGTM stack.
 | [Scenario 1 - Checkout SLO Burn](./docs/failure-scenarios.md#scenario-1--checkout-error-rate-increases-slo-burn) | SLO burn, alert firing | Metrics → Traces → Logs correlation |
 | [Scenario 2 - Pod Unhealthy](./docs/failure-scenarios.md#scenario-2--pod-becomes-unhealthy-readiness-probe-failure) | Readiness probe failure | Endpoint removal, diagnosis |
 | [Scenario 3 - Node Disruption](./docs/failure-scenarios.md#scenario-3--node-disruption-pdb-protects-critical-workloads) | Voluntary disruption | PDB `minAvailable: 1` protection |
-| [Scenario 4 - GitOps Drift](./docs/failure-scenarios.md#scenario-4--gitops-drift-manual-change--self-heal) | Manual drift | Argo CD self-heal |
+| [Scenario 4 - GitOps Drift](./docs/failure-scenarios.md#scenario-4--gitops-drift-manual-change--self-heal) | Manual `kubectl scale --replicas=0` -> Argo CD selfHeal restores in 60s | `bash scripts/demo-self-heal.sh` proves Git is source of truth |
 | [Scenario 5 - Git Deployment](./docs/failure-scenarios.md#scenario-5--configuration-deployment-git--ci--argo) | Config promotion | Git → CI → Argo flow |
 | [Scenario 6 - Secret Rotation](./docs/failure-scenarios.md#scenario-6--secret-rotation-your-actual-bug) | Secret rotation | SealedSecrets |
 | [Scenario 7 - Resource Exhaustion](./docs/failure-scenarios.md#scenario-7--resource-exhaustion-limit-enforcement) | Noisy neighbor | Limits + OOMKilled |
@@ -316,6 +331,7 @@ Why this stack, not alternatives - and how it maps to EKS.
 | **K3d** | Local K8s with 1 server + 2 agents - tests voluntary disruption, patterns transfer to EKS |
 | **Terraform** | Declarative bootstrap + state - one `apply` = full env |
 | **Argo CD App-of-Apps** | Scalable GitOps - root discovers 8 apps, Git push → auto-sync 30s |
+| **Argo CD server.insecure=true** | Local-only lab, Traefik provides http://argocd.local -> 127.0.0.1. No TLS needed, avoids cert-manager loop. Production: websecure + cert-manager + SSO/OIDC + WAF. Intentional simplification, not accidental. | TLS + OIDC | Adds complexity without SRE value for k3d |
 | **Alloy** | Single collector for OTLP + logs + metrics vs 3 separate |
 | **Loki/Tempo/Prometheus** | Separate backends - independent scaling, S3 native |
 | **MinIO** | S3-compatible locally - same API as prod S3 buckets |
