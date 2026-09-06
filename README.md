@@ -393,6 +393,7 @@ kubectl -n argocd get applications
 # ...
 kubectl -n monitoring get pods
 # All 11 otel-demo microservices + Loki/Tempo/Prometheus/Alloy Running
+```
 
 ---
 
