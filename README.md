@@ -368,6 +368,32 @@ kubectl drain k3d-observability-lab-agent-0 --ignore-daemonsets --delete-emptydi
 # Should block when only 1 cart left due to PDB
 kubectl uncordon k3d-observability-lab-agent-0
 ```
+
+### Clean Destroy/Recreate Experiment - 2026-09-06 - Proves Reproducibility
+
+**Goal:** Prove "Yes, from Git, with explicitly documented persistent-data semantics"
+
+```powershell
+# 1. Destroy
+k3d cluster delete observability-cluster --all
+docker volume ls | grep k3d-observability-lab  # shows surviving volumes (intentional)
+
+# 2. Full clean (optional)
+docker volume prune -f  # removes MinIO loki/tempo data
+
+# 3. Recreate from Git
+terraform -chdir=bootstrap apply -auto-approve
+# 60s cluster create, 3min Argo syncs 8 apps
+
+# 4. Verify
+k3d cluster list
+kubectl -n argocd get applications
+# otel-demo      Healthy  Synced
+# prometheus     Healthy  Synced
+# ...
+kubectl -n monitoring get pods
+# All 11 otel-demo microservices + Loki/Tempo/Prometheus/Alloy Running
+
 ---
 
 ## 🔧 Key Engineering Decisions
