@@ -71,24 +71,72 @@ flowchart LR
 k3d-observability-lab/
 ├── .github/
 │   └── workflows/
-│       └── ci.yaml                     # GitHub Actions CI pipeline
+│       └── ci.yaml                     # Shift-left CI: terraform fmt, helm lint, kubeval, kyverno check, Argo diff
+├── apps/
+│   ├── monitoring/                     # Argo CD child apps - discovered by root-app.yaml App-of-Apps
+│   │   ├── dashboards/                 # Grafana dashboards as ConfigMaps (synced via dashboards-app)
+│   │   │   ├── 01-infra-cluster.yaml   # Node CPU/Mem/Disk, kubelet, API server health
+│   │   │   ├── 02-infra-k8s-use.yaml   # Pod CPU/Mem vs requests/limits, namespace usage
+│   │   │   ├── 03-app-red.yaml         # RED: Rate/Errors/Duration for frontend/checkout/cart/kafka
+│   │   │   ├── 04-app-business.yaml    # Business: Orders/min, revenue, cart value
+│   │   │   ├── 05-logs.yaml            # Loki logs dashboard with label filters
+│   │   │   ├── 06-traces.yaml          # Tempo traces + exemplars correlation
+│   │   │   ├── 08-master-sre.yaml      # 00 - Master SRE - One Screen: burn-rate, traffic, errors, business
+│   │   │   └── test-dashboard.yaml     # Dev sandbox dashboard for PromQL experiments
+│   │   ├── slos/                       # SLO definitions - Google SRE Workbook true burn-rate
+│   │   │   ├── dashboard.yaml          # Grafana SLO dashboard (burn-rate gauges)
+│   │   │   └── rules.yaml              # PrometheusRule otel-demo-slos: error_rate, burn_rate, success_percent, alerts CheckoutSLOBurning/FastBurn
+│   │   ├── alloy-app.yaml              # Argo Application for Grafana Alloy (OTel + logs + metrics collector)
+│   │   ├── alloy-values.yaml           # Alloy config: OTLP receiver alloy.monitoring.svc:4317, loki.source.kubernetes
+│   │   ├── dashboards-app.yaml         # Argo Application that syncs Grafana dashboards from dashboards/
+│   │   ├── hardening-app.yaml          # Argo Application for platform hardening (PDBs only, avoids SharedResourceWarning)
+│   │   ├── ingress.yaml                # Traefik IngressRoutes: grafana.local, prometheus.local, shop.local -> 127.0.0.1 (local-only, annotated prod-posture websecure+TLS)
+│   │   ├── loki-app.yaml               # Argo Application for Loki (logs storage)
+│   │   ├── loki-values.yaml            # Loki values: boltdb-shipper, S3 backend via MinIO bucket loki, retention hours (lab)
+│   │   ├── minio-app.yaml              # Argo Application for MinIO (S3-compatible object store)
+│   │   ├── minio-sealed-secret.yaml    # SealedSecret for MinIO rootUser/rootPassword (git-safe, kubeseal encrypted)
+│   │   ├── minio-values.yaml           # MinIO values: single-node single-disk (intentional - demonstrates S3 API integration, not durable HA)
+│   │   ├── otel-demo-app.yaml          # Argo Application for OpenTelemetry Demo (SUT - 11 microservices in monitoring ns)
+│   │   ├── otel-demo-values.yaml       # Declarative resource limits per service (cart 50m/64Mi→200m/160Mi, checkout, kafka 100m/256Mi→1000m/800Mi etc) + env OTEL_COLLECTOR_NAME
+│   │   ├── prometheus-app.yaml         # Argo Application for kube-prometheus-stack (Prometheus + Grafana + Alertmanager)
+│   │   ├── prometheus-grafana-values.yaml # Values: Alertmanager slack webhook, slack-sre receiver, multi-window burn-rate alerts, silences for k3d false positives
+│   │   ├── sealed-alertmanager-slack.yaml # SealedSecret for Slack webhook api-url (git-safe)
+│   │   ├── tempo-app.yaml              # Argo Application for Tempo (traces storage)
+│   │   └── tempo-values.yaml           # Tempo values: S3 backend via MinIO bucket tempo, retention hours
+│   └── platform/
+│       └── hardening/                  # Production hardening owned separately to avoid Helm ownership conflicts
+│           ├── 02-poddisruptionbudgets.yaml # PDBs cart/checkout/frontend/kafka minAvailable:1 (voluntary disruption protection, not HA)
+│           └── README.md               # Hardening docs: declarative limits, PDB eviction vs HA, probes CI-validated, self-heal live evidence
+├── argocd/
+│   ├── projects/
+│   │   └── observability-project.yaml  # Argo CD AppProject: restricts repo/cluster/namespace scope (not default unrestricted)
+│   └── root-app.yaml                   # Root App-of-Apps: points to apps/monitoring/, auto-discovers 8 child apps, syncPolicy prune:true selfHeal:true
+├── bootstrap/
+│   └── main.tf                         # Terraform: null_resource k3d cluster create + helm_release argocd + sealed-secrets + root-app apply. Local state intentional (prod EKS uses S3 backend)
 ├── clusters/
-│   └── observability-cluster.yaml      # K3d multi-node cluster definition
-├── bootstrap/                        
-│   ├── main.tf                       # Terraform automated cluster & Argo CD provisioner
-│   └── argocd-install.yaml           # Upstream Argo CD installation manifests
-├── argocd/                           
-│   └── root-app.yaml                 # Argo CD App-of-Apps root application manifest
-└── apps/                             
-    └── monitoring/                   # Helm values, ingress routes, and configurations
-        ├── minio-values.yaml
-        ├── loki-values.yaml
-        ├── tempo-values.yaml
-        ├── alloy-values.yaml
-        ├── minio-sealed-secret.yaml          # Encrypted MinIO credentials for GitOps
-        ├── sealed-alertmanager-slack.yaml    # Encrypted Slack webhook secret for alerts
-        └── ingress.yaml                      # Traefik local routing rules (*.local)
-
+│   └── observability-cluster.yaml      # k3d cluster def: 1 server 2 agents, kubeAPI 127.0.0.1:6443 (local-only), ports 80/443 loadbalancer for Traefik
+├── docs/
+│   ├── images/
+│   │   ├── diagram1_dark.png           # GitOps workflow diagram dark mode (App-of-Apps with 8 apps)
+│   │   ├── diagram1_light.png          # GitOps workflow diagram light mode
+│   │   ├── diagram2_dark_new.png       # Observability flow diagram dark (OTel→Alloy→LGTM→Alert→Slack→Runbook)
+│   │   ├── diagram2_dark.png           # Legacy diagram2 dark
+│   │   ├── diagram2_light_new.png      # Observability flow diagram light
+│   │   └── diagram2_light.png          # Legacy diagram2 light
+│   ├── runbooks/
+│   │   └── checkout-slo-burning.md     # Complete runbook for CheckoutSLOBurning/FastBurn: burn-rate math, diagnosis, mitigation, known k3d issues, production mapping
+│   ├── architecture.md                 # Detailed architecture doc (LGTM flow, GitOps layers)
+│   ├── demo-self-heal.gif              # GIF demo of Argo self-heal (cart replicas 0→1)
+│   ├── failure-scenarios.md            # 7 SRE exercises: SLO burn true burn-rate, pod unhealthy, PDB drain, GitOps drift measured <60s, config deploy, secret rotation, resource exhaustion
+│   └── key-decisions.md                # Decision log: why K3d, Terraform local state, App-of-Apps, Alloy, Loki/Tempo/Prometheus, MinIO, SealedSecrets, PDBs, resource limits
+├── scripts/
+│   └── demo-self-heal.sh               # Automated drift experiment: scale cart to 0, watch Argo restore to 1 in <60s, proves Git source of truth
+├── .gitattributes                      # Enforces LF line endings (CRLF fix for WSL2/Windows)
+├── .gitignore                          # Ignores plaintext secrets (minio-secret.yaml, alertmanager-slack.yaml, terraform state)
+├── alertmanager-slack-example.yaml     # Example plaintext Slack secret (template, never commit real)
+├── HARDENING.md                        # Hardening summary v1.0: ingress local-only, self-heal evidence, PDBs, NetworkPolicy intentional skip, prod vs lab table
+├── minio-secret-example.yaml           # Example plaintext MinIO secret (template, never commit real)
+└── README.md                           # Main doc: production-oriented patterns, architecture diagrams, quick start WSL2, ingress *.local, failure scenarios table, key decisions
 ```
 
 ---
