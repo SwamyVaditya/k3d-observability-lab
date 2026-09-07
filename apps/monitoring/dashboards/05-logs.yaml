@@ -32,7 +32,8 @@ data:
           "title": "Error Logs Rate",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "datasource": {"type": "loki", "uid": "loki"},
-          "targets": [{"expr": "rate({level=\"ERROR\"}[1m])", "refId": "A"}]
+          "targets": [{"expr": "sum(count_over_time({job=\"otel-demo\"} |= \"ERROR\" [5m]))", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "ops", "min": 0}}
         },
         {
           "type": "logs",
