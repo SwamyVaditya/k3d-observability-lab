@@ -69,8 +69,8 @@ spec:
             slo: checkout
             team: app
           annotations:
-            summary: "Checkout SLO burning at {{ $value | humanize }}x"
-            description: "Burn rate {{ $value }}x over 0.5% budget. Error rate 5m={{ $value | humanizePercentage }}"
+            summary: "Checkout SLO burning at {{ $value | humanize }}x budget"
+            description: "Burn rate {{ $value }}x over 0.5% error budget. Success percent {{ with query \"slo:checkout:success_percent:5m\" }}{{. | first | value | humanize }}%{{ end }}. Check grafana Master SRE."
             runbook_url: "https://github.com/SwamyVaditya/k3d-observability-lab/blob/main/docs/runbooks/checkout-slo-burning.md"
 
         - alert: CheckoutSLOFastBurn
@@ -81,8 +81,9 @@ spec:
             slo: checkout
             team: app
           annotations:
-            summary: "Checkout FAST BURN {{ $value | humanize }}x - immediate action"
-            description: "10x burn = ~5% errors vs 0.5% allowed."
+            summary: "Checkout FAST BURN {{ $value | humanize }}x - immediate action required"
+            description: "10x burn = ~5% errors vs 0.5% allowed. Burn {{ $value }}x. Orders failing."
+            runbook_url: "https://github.com/SwamyVaditya/k3d-observability-lab/blob/main/docs/runbooks/checkout-slo-burning.md"
 
         - alert: CheckoutTrafficAbsent
           expr: slo:checkout:traffic:5m == 0
