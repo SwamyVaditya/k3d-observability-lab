@@ -14,103 +14,24 @@ data:
       "uid": "master-sre-one",
       "timezone": "browser",
       "schemaVersion": 39,
-      "tags": ["phase4", "sre", "master"],
+      "tags": ["phase4","sre","master"],
+      "time": {"from": "now-1h", "to": "now"},
       "panels": [
-        {
-          "type": "stat",
-          "title": "Traffic - req/s (now) - all",
-          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
-          "targets": [{"expr": "sum(rate(app_frontend_requests_total[5m]))", "datasource": {"uid": "prometheus"}}]
-        },
-        {
-          "type": "stat",
-          "title": "Errors - Error % (5m) - all",
-          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
-          "targets": [{"expr": "(sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(app_frontend_requests_total[5m])), 0.0001)) * 100", "datasource": {"uid": "prometheus"}}],
-          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
-        },
-        {
-          "type": "stat",
-          "title": "Latency - p95 (5m) - ALL services",
-          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
-          "targets": [{"expr": "histogram_quantile(0.95, sum by(le) (rate(http_server_request_duration_seconds_bucket[5m]))) * 1000", "datasource": {"uid": "prometheus"}}],
-          "fieldConfig": {"defaults": {"unit": "ms", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 300}, {"color": "red", "value": 500}]}}}
-        },
-        {
-          "type": "stat",
-          "title": "Up Services",
-          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
-          "targets": [{"expr": "count(up==1)", "datasource": {"uid": "prometheus"}}]
-        },
-        {
-          "type": "timeseries",
-          "title": "SLO - True Burn Rate (checkout) - 1x = 0.5% budget",
-          "gridPos": {"h": 8, "w": 16, "x": 0, "y": 4},
-          "targets": [
-            {"expr": "slo:checkout:burn_rate:5m", "legendFormat": "burn 5m (x)", "datasource": {"uid": "prometheus"}},
-            {"expr": "slo:checkout:burn_rate:1h", "legendFormat": "burn 1h (x)", "datasource": {"uid": "prometheus"}},
-            {"expr": "2", "legendFormat": "2x threshold (warn)", "datasource": {"uid": "prometheus"}},
-            {"expr": "10", "legendFormat": "10x threshold (critical)", "datasource": {"uid": "prometheus"}}
-          ]
-        },
-        {
-          "type": "stat",
-          "title": "Success % 5m (checkout) - No Data = no traffic",
-          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "slo:checkout:success_percent:5m", "legendFormat": "success %"}],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "noValue": "No traffic - idle healthy",
-              "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 99}, {"color": "red", "value": 95}]}
-            }
-          }
-        },
-        {
-          "type": "timeseries",
-          "title": "Checkout vs Cart RPS",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
-          "targets": [
-            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\"}[5m]))", "legendFormat": "checkout RPS", "datasource": {"uid": "prometheus"}},
-            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*cart.*\"}[5m]))", "legendFormat": "cart RPS", "datasource": {"uid": "prometheus"}}
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Business - Orders / min",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
-          "targets": [
-            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\", status!~\"5..\"}[5m])) * 60", "legendFormat": "Orders/min", "datasource": {"uid": "prometheus"}}
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Current Errors - 5xx/s",
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
-          "targets": [
-            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=\"500\"}[5m]))", "legendFormat": "checkout 500/s", "datasource": {"uid": "prometheus"}},
-            {"expr": "sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m]))", "legendFormat": "all 5xx/s", "datasource": {"uid": "prometheus"}}
-          ]
-        },
-        {
-          "type": "timeseries",
-          "title": "Cart p95 Latency (ms)",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
-          "targets": [{"expr": "slo:cart:p95_latency:5m * 1000", "legendFormat": "cart p95 ms", "datasource": {"uid": "prometheus"}}],
-          "fieldConfig": {"defaults": {"unit": "ms"}}
-        },
-        {
-          "type": "stat",
-          "title": "Pods Not Ready",
-          "gridPos": {"h": 4, "w": 12, "x": 0, "y": 28},
-          "targets": [{"expr": "sum(kube_pod_status_phase{phase=~\"Pending|Unknown|Failed\"})", "datasource": {"uid": "prometheus"}}]
-        },
-        {
-          "type": "timeseries",
-          "title": "Pod Restarts (1h) - per pod",
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
-          "targets": [{"expr": "sum by(pod) (increase(kube_pod_container_status_restarts_total[1h]))", "datasource": {"uid": "prometheus"}}]
-        }
+        {"type":"stat","title":"Traffic - req/s (now) - all","gridPos":{"h":4,"w":6,"x":0,"y":0},"datasource":{"uid":"prometheus"},"targets":[{"expr":"sum(rate(app_frontend_requests_total[5m])) or vector(0)","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"reqps","noValue":"No traffic"}}},
+        {"type":"stat","title":"Errors - Error % (5m) - all","gridPos":{"h":4,"w":6,"x":6,"y":0},"datasource":{"uid":"prometheus"},"targets":[{"expr":"100 * sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(app_frontend_requests_total[5m])),1)","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"percent","noValue":"No errors - healthy","thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"yellow","value":1},{"color":"red","value":5}]}}}},
+        {"type":"stat","title":"Latency - p95 (5m) - ALL services","gridPos":{"h":4,"w":6,"x":12,"y":0},"datasource":{"uid":"prometheus"},"targets":[{"expr":"histogram_quantile(0.95, sum by(le) (rate(http_server_request_duration_seconds_bucket[5m]))) * 1000","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"ms","noValue":"No traffic","thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"yellow","value":300},{"color":"red","value":500}]}}}},
+        {"type":"stat","title":"Up Services","gridPos":{"h":4,"w":6,"x":18,"y":0},"datasource":{"uid":"prometheus"},"targets":[{"expr":"count(up==1)","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"short"}}},
+
+        {"type":"timeseries","title":"SLO - True Burn Rate (checkout) - 1x = 0.5% budget","gridPos":{"h":8,"w":16,"x":0,"y":4},"datasource":{"uid":"prometheus"},"targets":[{"expr":"slo:checkout:burn_rate:5m","legendFormat":"burn 5m (x)","datasource":{"uid":"prometheus"}},{"expr":"slo:checkout:burn_rate:1h","legendFormat":"burn 1h (x)","datasource":{"uid":"prometheus"}},{"expr":"2","legendFormat":"2x warn","datasource":{"uid":"prometheus"}},{"expr":"10","legendFormat":"10x critical","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"short","min":0,"noValue":"No burn - healthy"}}},
+        {"type":"stat","title":"Success % 5m (checkout) - No Data = no traffic","gridPos":{"h":8,"w":8,"x":16,"y":4},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"slo:checkout:success_percent:5m","legendFormat":"success %"}],"fieldConfig":{"defaults":{"unit":"percent","noValue":"No traffic - idle healthy","thresholds":{"mode":"absolute","steps":[{"color":"red","value":0},{"color":"yellow","value":95},{"color":"green","value":99},{"color":"green","value":99.5}]}}}},
+
+        {"type":"timeseries","title":"Checkout vs Cart RPS","gridPos":{"h":8,"w":12,"x":0,"y":12},"datasource":{"uid":"prometheus"},"targets":[{"expr":"sum(rate(app_frontend_requests_total{target=~\".*checkout.*\"}[5m])) or vector(0)","legendFormat":"checkout RPS","datasource":{"uid":"prometheus"}},{"expr":"sum(rate(app_frontend_requests_total{target=~\".*cart.*\"}[5m])) or vector(0)","legendFormat":"cart RPS","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"reqps"}}},
+        {"type":"timeseries","title":"Business - Orders / min","gridPos":{"h":8,"w":12,"x":12,"y":12},"datasource":{"uid":"prometheus"},"targets":[{"expr":"sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status!~\"5..\"}[5m])) * 60 or vector(0)","legendFormat":"Orders/min","datasource":{"uid":"prometheus"}}]},
+
+        {"type":"timeseries","title":"Current Errors - 5xx/s","gridPos":{"h":8,"w":12,"x":0,"y":20},"datasource":{"uid":"prometheus"},"targets":[{"expr":"sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=~\"5..\"}[5m])) or vector(0)","legendFormat":"checkout 5xx/s","datasource":{"uid":"prometheus"}},{"expr":"sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m])) or vector(0)","legendFormat":"all 5xx/s","datasource":{"uid":"prometheus"}}]},
+        {"type":"timeseries","title":"Cart p95 Latency (ms)","gridPos":{"h":8,"w":12,"x":12,"y":20},"datasource":{"uid":"prometheus"},"targets":[{"expr":"slo:cart:p95_latency:5m * 1000","legendFormat":"cart p95 ms","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"ms","noValue":"No cart traffic - idle"}}},
+
+        {"type":"stat","title":"Pods Not Ready","gridPos":{"h":8,"w":12,"x":0,"y":28},"datasource":{"uid":"prometheus"},"targets":[{"expr":"sum(kube_pod_status_phase{phase=~\"Pending|Unknown|Failed\"}) or vector(0)","datasource":{"uid":"prometheus"}}],"fieldConfig":{"defaults":{"unit":"short","noValue":"0 - all ready","thresholds":{"steps":[{"color":"green","value":0},{"color":"red","value":1}]}}}},
+        {"type":"timeseries","title":"Pod Restarts (1h) - per pod","gridPos":{"h":8,"w":12,"x":12,"y":28},"datasource":{"uid":"prometheus"},"targets":[{"expr":"sum by(pod) (increase(kube_pod_container_status_restarts_total[1h]))","datasource":{"uid":"prometheus"}}]}
       ]
     }

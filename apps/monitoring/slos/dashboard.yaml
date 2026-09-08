@@ -64,8 +64,8 @@ data:
           "gridPos":{"h":8,"w":12,"x":12,"y":4},
           "datasource":{"type":"prometheus","uid":"prometheus"},
           "targets":[
-            {"expr":"sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]))","legendFormat":"checkout RPS"},
-            {"expr":"sum(rate(app_frontend_requests_total{target=\"/api/cart\"}[5m]))","legendFormat":"cart RPS"}
+            {"expr":"sum(rate(app_frontend_requests_total{target=~\".*checkout.*\"}[5m])) or vector(0)","legendFormat":"checkout RPS"},
+            {"expr":"sum(rate(app_frontend_requests_total{target=~\".*cart.*\"}[5m])) or vector(0)","legendFormat":"cart RPS"}
           ]
         },
         {
@@ -88,8 +88,7 @@ data:
           "gridPos":{"h":8,"w":12,"x":12,"y":12},
           "datasource":{"type":"prometheus","uid":"prometheus"},
           "targets":[
-            {"expr":"sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m]))","legendFormat":"checkout 500/s"},
-            {"expr":"sum(rate(app_frontend_requests_total{target=\"/api/cart\",status=\"200\"}[5m]))","legendFormat":"cart 200/s"}
+            {"expr":"sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=~\"5..\"}[5m])) or vector(0)","legendFormat":"checkout 5xx/s"}
           ]
         }
       ]
