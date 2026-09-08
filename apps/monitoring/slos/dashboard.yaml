@@ -46,16 +46,17 @@ data:
           "fieldConfig":{"defaults":{"unit":"short"}}
         },
         {
-          "type":"timeseries",
-          "title":"SLO - Error Budget Burn Rate (checkout) - BURNING if > 0.5%",
-          "gridPos":{"h":8,"w":12,"x":0,"y":4},
-          "datasource":{"type":"prometheus","uid":"prometheus"},
-          "targets":[
-            {"expr":"100 * sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m])) / (sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m])) + 0.0001)","legendFormat":"Burn 5m % - should be ~100%"},
-            {"expr":"100 * sum(rate(app_frontend_requests_total{status=\"500\"}[5m])) / (sum(rate(app_frontend_requests_total[5m])) + 0.0001)","legendFormat":"Burn 5m ALL % - should be ~33%"},
-            {"expr":"0.5","legendFormat":"SLO 0.5%"}
+          "type": "timeseries",
+          "title": "SLO - Error Budget Burn Rate (checkout) - BURNING if > 1x",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "slo:checkout:burn_rate:5m", "legendFormat": "Burn 5m (x) - >2 warning, >10 critical"},
+            {"expr": "slo:checkout:burn_rate:1h", "legendFormat": "Burn 1h (x)"},
+            {"expr": "2", "legendFormat": "2x threshold (warn)"},
+            {"expr": "10", "legendFormat": "10x threshold (critical)"}
           ],
-          "fieldConfig":{"defaults":{"unit":"percent"}}
+          "fieldConfig": {"defaults": {"unit": "short", "min": 0}}
         },
         {
           "type":"timeseries",
@@ -68,15 +69,13 @@ data:
           ]
         },
         {
-          "type":"stat",
-          "title":"Error Budget Remaining (checkout)",
-          "gridPos":{"h":8,"w":12,"x":0,"y":12},
-          "datasource":{"type":"prometheus","uid":"prometheus"},
+          "type": "stat",
+          "title": "Error Budget Remaining (checkout) - Success %",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [
-            {
-              "expr": "100 * (1 - sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m])) / (sum(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]) + 0.0001))) or vector(100)",
-              "legendFormat": "Budget Remaining %"
-            }
+            {"expr": "slo:checkout:success_percent:5m", "legendFormat": "Success % 5m"},
+            {"expr": "100 * (1 - slo:checkout:error_rate:5m)", "legendFormat": "Budget Remaining % alt"}
           ],
           "fieldConfig": {
             "defaults": {
@@ -85,8 +84,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {"color": "red", "value": 0},
-                  {"color": "yellow", "value": 20},
-                  {"color": "green", "value": 80}
+                  {"color": "yellow", "value": 95},
+                  {"color": "green", "value": 99.5}
                 ]
               }
             }
