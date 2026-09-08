@@ -55,10 +55,17 @@ data:
         },
         {
           "type": "stat",
-          "title": "Success % 5m (checkout)",
-          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
-          "targets": [{"expr": "slo:checkout:success_percent:5m", "datasource": {"uid": "prometheus"}}],
-          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "yellow", "value": 95}, {"color": "green", "value": 99.5}]}}}
+          "title": "Success % 5m (checkout) - No Data = no traffic",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "slo:checkout:success_percent:5m", "legendFormat": "success %"}],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "No traffic - idle healthy",
+              "thresholds": {"steps": [{"color": "green"}, {"color": "yellow", "value": 99}, {"color": "red", "value": 95}]}
+            }
+          }
         },
         {
           "type": "timeseries",

@@ -35,7 +35,7 @@ data:
           "gridPos":{"h":4,"w":6,"x":12,"y":0},
           "datasource":{"type":"prometheus","uid":"prometheus"},
           "targets":[{"expr":"histogram_quantile(0.95, sum by(le)(rate(http_server_request_duration_seconds_bucket{job=\"cart\"}[5m])))"}],
-          "fieldConfig":{"defaults":{"unit":"s"}}
+          {"fieldConfig": {"defaults": {"unit": "s", "noValue": "No cart traffic - idle"}}}
         },
         {
           "type":"stat",
@@ -70,24 +70,15 @@ data:
         },
         {
           "type": "stat",
-          "title": "Error Budget Remaining (checkout) - Success %",
+          "title": "Error Budget Remaining (checkout) - Success % - No Data = idle",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [
-            {"expr": "slo:checkout:success_percent:5m", "legendFormat": "Success % 5m"},
-            {"expr": "100 * (1 - slo:checkout:error_rate:5m)", "legendFormat": "Budget Remaining % alt"}
-          ],
+          "targets": [{"expr": "slo:checkout:success_percent:5m", "legendFormat": "Success % 5m"}],
           "fieldConfig": {
             "defaults": {
-              "unit": "percent",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {"color": "red", "value": 0},
-                  {"color": "yellow", "value": 95},
-                  {"color": "green", "value": 99.5}
-                ]
-              }
+              "unit": "percent", 
+              "noValue": "Idle - no checkout traffic", 
+              "thresholds": {"steps": [{"color": "red", "value": 0}, {"color": "yellow", "value": 95}, {"color": "green", "value": 99.5}]}
             }
           }
         },

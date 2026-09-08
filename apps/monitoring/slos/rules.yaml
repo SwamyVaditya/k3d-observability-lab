@@ -44,11 +44,18 @@ spec:
         - record: slo:checkout:burn_rate:1h
           expr: slo:checkout:error_rate:1h / 0.005
 
+        # HONEST success % - No Data when no traffic (correct)
         - record: slo:checkout:success_percent:5m
-          expr: 100 * (1 - slo:checkout:error_rate:5m)
+          expr: |
+            100 * (1 - slo:checkout:error_rate:5m)
+            and
+            slo:checkout:traffic:5m > 0
 
         - record: slo:checkout:success_percent:1h
-          expr: 100 * (1 - slo:checkout:error_rate:1h)
+          expr: |
+            100 * (1 - slo:checkout:error_rate:1h)
+            and
+            sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[1h])) > 0
 
         - record: slo:checkout:budget_remaining_percent
           expr: slo:checkout:success_percent:5m
@@ -102,7 +109,7 @@ spec:
             severity: warning
             slo: checkout
           annotations:
-            summary: "No checkout traffic for 15m"
+            summary: "No checkout traffic for 15m - success % will show No Data (honest)"
 
         - alert: CartHighLatency
           expr: slo:cart:p95_latency:5m > 0.5
