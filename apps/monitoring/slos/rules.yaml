@@ -12,110 +12,70 @@ spec:
       interval: 30s
       rules:
         - record: slo:checkout:error_rate:5m
-          expr: |
-            (
-              sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[5m]))
-              /
-              clamp_min(sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m])), 1)
-            )
-            or vector(0)
-
+          expr: sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[5m])) / clamp_min(sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m])),1) or vector(0)
+        
         - record: slo:checkout:error_rate:1h
-          expr: |
-            (
-              sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[1h]))
-              /
-              clamp_min(sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[1h])), 1)
-            )
-            or vector(0)
-
+          expr: sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[1h])) / clamp_min(sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[1h])),1) or vector(0)
+        
         - record: slo:checkout:traffic:5m
           expr: sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m])) or vector(0)
-
+        
         - record: slo:checkout:slo_target
           expr: vector(0.995)
-
+        
         - record: slo:checkout:error_budget
           expr: vector(0.005)
-
+        
         - record: slo:checkout:burn_rate:5m
           expr: slo:checkout:error_rate:5m / 0.005
-
+        
         - record: slo:checkout:burn_rate:1h
           expr: slo:checkout:error_rate:1h / 0.005
-
-        # HONEST success % - No Data when no traffic (correct)
+        
         - record: slo:checkout:success_percent:5m
-          expr: |
-            100 * (1 - slo:checkout:error_rate:5m)
-            and
-            slo:checkout:traffic:5m > 0
-
+          expr: 100 * (1 - slo:checkout:error_rate:5m) and slo:checkout:traffic:5m > 0
+        
         - record: slo:checkout:success_percent:1h
-          expr: |
-            100 * (1 - slo:checkout:error_rate:1h)
-            and
-            sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[1h])) > 0
-
+          expr: 100 * (1 - slo:checkout:error_rate:1h) and sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[1h])) > 0
+        
         - record: slo:checkout:budget_remaining_percent
           expr: slo:checkout:success_percent:5m
-
+        
         - record: slo:all:error_rate:5m
-          expr: |
-            (
-              sum(rate(app_frontend_requests_total{status=~"5.."}[5m]))
-              /
-              clamp_min(sum(rate(app_frontend_requests_total[5m])), 1)
-            )
-            or vector(0)
-
+          expr: sum(rate(app_frontend_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(app_frontend_requests_total[5m])),1) or vector(0)
+        
         - record: slo:cart:p95_latency:5m
-          expr: |
-            histogram_quantile(0.95,
-              sum by(le) (rate(http_server_request_duration_seconds_bucket{job="cart"}))
-            )
-
+          expr: histogram_quantile(0.95, sum by(le) (rate(http_server_request_duration_seconds_bucket{job="cart"}[5m])))
+        
         - alert: CheckoutSLOBurning
-          expr: |
-            slo:checkout:burn_rate:5m > 2
-            and
-            slo:checkout:burn_rate:1h > 2
+          expr: slo:checkout:burn_rate:5m > 2 and slo:checkout:burn_rate:1h > 2
           for: 2m
-          labels:
-            severity: warning
-            slo: checkout
-            team: app
+          labels: {severity: warning, slo: checkout, team: app}
           annotations:
             summary: "Checkout SLO burning at {{ $value | humanize }}x budget"
             description: "Burn rate {{ $value }}x over 0.5% error budget. Success percent {{ with query \"slo:checkout:success_percent:5m\" }}{{. | first | value | humanize }}%{{ end }}. Check grafana Master SRE."
             runbook_url: "https://github.com/SwamyVaditya/k3d-observability-lab/blob/main/docs/runbooks/checkout-slo-burning.md"
 
+        
         - alert: CheckoutSLOFastBurn
           expr: slo:checkout:burn_rate:5m > 10
           for: 2m
-          labels:
-            severity: critical
-            slo: checkout
-            team: app
+          labels: {severity: critical, slo: checkout, team: app}
           annotations:
             summary: "Checkout FAST BURN {{ $value | humanize }}x - immediate action required"
             description: "10x burn = ~5% errors vs 0.5% allowed. Burn {{ $value }}x. Orders failing."
             runbook_url: "https://github.com/SwamyVaditya/k3d-observability-lab/blob/main/docs/runbooks/checkout-slo-burning.md"
-
+        
         - alert: CheckoutTrafficAbsent
           expr: slo:checkout:traffic:5m == 0
           for: 15m
-          labels:
-            severity: warning
-            slo: checkout
-          annotations:
+          labels: {severity: warning, slo: checkout}
+          annotations: 
             summary: "No checkout traffic for 15m - success % will show No Data (honest)"
-
+        
         - alert: CartHighLatency
           expr: slo:cart:p95_latency:5m > 0.5
           for: 5m
-          labels:
-            severity: warning
-            slo: cart
-          annotations:
+          labels: {severity: warning, slo: cart}
+          annotations: 
             summary: "Cart p95 latency {{ $value }}s > 500ms"
