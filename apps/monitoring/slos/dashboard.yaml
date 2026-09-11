@@ -27,7 +27,7 @@ data:
           "gridPos":{"h":4,"w":6,"x":6,"y":0},
           "datasource":{"type":"prometheus","uid":"prometheus"},
           "targets":[{"expr":"100 * sum(rate(app_frontend_requests_total{status=~\"5..\"}[5m])) / sum(rate(app_frontend_requests_total[5m]))"}],
-          "fieldConfig":{"defaults":{"unit":"percent","thresholds":{"steps":[{"color":"green"},{"color":"yellow","value":1},{"color":"red","value":5}]}}}
+          "fieldConfig":{"defaults":{"unit":"percent","noValue":"No errors - healthy","thresholds":{"steps":[{"color":"green"},{"color":"yellow","value":1},{"color":"red","value":5}]}}}
         },
         {
           "type":"stat",

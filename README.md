@@ -239,6 +239,30 @@ terraform init
 terraform apply -auto-approve
 ```
 
+#### 2a. WSL → Windows kubectl access
+
+Terraform runs in WSL2 and creates kubeconfig at `~/.kube/config` (WSL). 
+To use `kubectl` from Windows:
+
+**WSL2 (one-time after terraform apply):**
+```bash
+# Show Windows path
+echo "Windows kubeconfig path: /mnt/c/Users/$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r')/.kube/config"
+
+# Auto-sync with inline certs (k3d 5+ uses inline certs by default, no file paths)
+# Auto-sync to Windows - replace <WIN_USER> with your Windows username
+k3d kubeconfig get observability-cluster --output /mnt/c/Users/<WIN_USER>/.kube/config
+```
+
+**Windows PowerShell (verify):**
+```powershell
+kubectl config use-context k3d-observability-cluster
+kubectl get nodes
+kubectl -n argocd get applications
+```
+
+The cluster API is bound to `127.0.0.1:6443` (see `clusters/observability-cluster.yaml`) so both WSL and Windows can reach it via localhost. Certs are inline, no path fix needed.
+
 ---
 
 #### 3. Secrets Management (Sealed Secrets Workflow)
@@ -432,7 +456,23 @@ Full: [docs/architecture.md](./docs/architecture.md)
 
 ---
 
-### For Recruiters / Interviewers
+## Evidence - v1.0 Screenshots
+
+### Argo CD - 8 apps Synced/Healthy (App-of-Apps self-heal)
+![Argo CD Synced Healthy](docs/images/v1.0/01-argocd-apps-synced-healthy.png)
+
+### Grafana - Master SRE Dashboard (burn-rate, RED, business)
+![Master SRE](docs/images/v1.0/02-grafana-sre-master-dashboard.png)
+
+### Grafana - Logs/Traces correlation via Alloy
+![Logs Traces](docs/images/v1.0/05-grafana-logs-traces.png)
+
+### Alertmanager → Slack with runbook_url
+![Slack Alert](docs/images/v1.0/06-slack-alertmanager.png)
+
+---
+
+## For Recruiters / Interviewers
 
 This is not just a standard Helm install demo. It is a comprehensive **GitOps + SRE lab** demonstrating:
 
