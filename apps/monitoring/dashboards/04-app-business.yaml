@@ -19,36 +19,31 @@ data:
           "type": "timeseries",
           "title": "Checkout Rate (Place Order) - 500 indicates kafka/queue failure",
           "gridPos": {"h":8,"w":12,"x":0,"y":0},
-          "targets": [{
-            "expr": "sum by(status)(rate(app_frontend_requests_total{target=\"/api/checkout\"}[5m]))",
-            "datasource":{"type":"prometheus","uid":"prometheus"}
-          }]
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "sum by(status) (rate(app_frontend_requests_total{target=~\".*checkout.*\"}[5m]))", "legendFormat": "status={{status}}"}]
         },
         {
           "type": "timeseries",
           "title": "Cart Operations",
           "gridPos": {"h":8,"w":12,"x":12,"y":0},
-          "targets": [{
-            "expr": "sum by(target, method)(rate(app_frontend_requests_total{target=~\"/api/cart.*\"}[5m]))",
-            "datasource":{"type":"prometheus","uid":"prometheus"}
-          }]
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "sum by(target, method) (rate(app_frontend_requests_total{target=~\".*cart.*\"}[5m]))", "legendFormat": "{{method}} {{target}}"}]
         },
         {
           "type": "timeseries",
           "title": "Cart Service gRPC - AddItem / GetCart",
           "gridPos": {"h":8,"w":12,"x":0,"y":8},
-          "targets": [{
-            "expr": "sum by(http_route)(rate(http_server_request_duration_seconds_count{job=\"cart\"}[5m]))",
-            "datasource":{"type":"prometheus","uid":"prometheus"}
-          }]
+          "datasource": {"type":"prometheus","uid":"prometheus"},
+          "targets": [{"expr": "sum by(http_route) (rate(http_server_request_duration_seconds_count{job=\"cart\"}[5m]))", "legendFormat": "{{http_route}}"}]
         },
         {
           "type": "timeseries",
-          "title": "Checkout Failures vs Success",
+          "title": "Checkout Failures vs Success (honest regex)",
           "gridPos": {"h":8,"w":12,"x":12,"y":8},
+          "datasource": {"type":"prometheus","uid":"prometheus"},
           "targets": [
-            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"500\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}},
-            {"expr": "sum(rate(app_frontend_requests_total{target=\"/api/checkout\",status=\"200\"}[5m]))","datasource":{"type":"prometheus","uid":"prometheus"}}
+            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=\"500\"}[5m]))", "legendFormat": "500 failures"},
+            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=\"200\"}[5m]))", "legendFormat": "200 success"}
           ]
         }
       ]
