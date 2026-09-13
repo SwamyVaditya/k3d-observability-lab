@@ -1,72 +1,73 @@
 param(
   [string]$BaseUrl = "http://shop.local",
-  [int]$Users = 3,
-  [int]$DurationSec = 0
+  [int]$Users = 3
 )
 
-Write-Host "Load test v2 -> $BaseUrl with $Users users (Ctrl+C to stop)" -ForegroundColor Green
+Write-Host "Load test FINAL v6 -> $BaseUrl with $Users users" -ForegroundColor Green
 
-$products = @()
+# Hardcoded known-good product IDs from your shop.local (avoid PS id parsing bug)
+$knownProductIds = @("0PUK6V6EV0","1YMWWN1N4O","2ZYFJ3GM2N","66VCHSJNUP","6E92ZMYYFZ","9SIQT8TOJO","L9ECAV7KIM","LS4PSXUNUM","OLJCESPC7Z","HQTGWGPNH4")
+
+# Also try to fetch to verify count
 try {
-  $resp = Invoke-RestMethod -Uri "$BaseUrl/api/products" -TimeoutSec 5
-  $products = $resp.products
-  if(-not $products){ $products = $resp } # fallback if array directly
-  Write-Host "Found $($products.Count) products" -ForegroundColor Cyan
+  $raw = Invoke-WebRequest -Uri "$BaseUrl/api/products" -UseBasicParsing -TimeoutSec 10
+  $parsed = $raw.Content | ConvertFrom-Json
+  if ($parsed.products) { $parsed = $parsed.products }
+  Write-Host "Verified $($parsed.Count) products from API" -ForegroundColor Cyan
+  # Use API ids if we can extract them via regex (bypass PS bug)
+  $regexIds = [regex]::Matches($raw.Content, '"id"\s*:\s*"([^"]+)"') | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique
+  if ($regexIds.Count -ge 5) {
+    $knownProductIds = $regexIds
+    Write-Host "Using $($knownProductIds.Count) IDs extracted via regex" -ForegroundColor Cyan
+  }
 } catch {
-  Write-Host "Failed $BaseUrl/api/products : $_" -ForegroundColor Red
-  exit 1
+  Write-Host "Using hardcoded product IDs" -ForegroundColor Yellow
 }
 
-$start = Get-Date
 $jobs = 1..$Users | ForEach-Object {
   Start-Job -ScriptBlock {
-    param($BaseUrl, $ProductsJson)
-    $products = $ProductsJson | ConvertFrom-Json
+    param($BaseUrl, $ProductIdsJson)
+    $productIds = $ProductIdsJson | ConvertFrom-Json
     $rand = [Random]::new()
+    $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $userId = [guid]::NewGuid().ToString()
+
+    try { $null = Invoke-WebRequest -Uri "$BaseUrl/" -WebSession $session -UseBasicParsing -TimeoutSec 5 } catch {}
 
     while ($true) {
       try {
-        $null = Invoke-RestMethod -Uri "$BaseUrl/api/products" -TimeoutSec 3 -ErrorAction SilentlyContinue
-        Start-Sleep -Milliseconds $rand.Next(100,400)
+        # Add 1 random product
+        $prodId = $productIds | Get-Random
+        $cartPayload = @{userId=$userId; item=@{productId=$prodId; quantity=$rand.Next(1,3)}} | ConvertTo-Json -Compress
+        $null = Invoke-RestMethod -Uri "$BaseUrl/api/cart?currencyCode=USD" -Method Post -Body $cartPayload -ContentType "application/json" -WebSession $session -TimeoutSec 5 -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds $rand.Next(200,500)
 
-        # CORRECT cart payload
-        $p = $products | Get-Random
-        $pid = if($p.id){$p.id}else{$p.productId}
-        $cartBody = @{ item = @{ productId = $pid; quantity = $rand.Next(1,3) } } | ConvertTo-Json
-        $null = Invoke-WebRequest -Uri "$BaseUrl/api/cart" -Method Post -Body $cartBody -ContentType "application/json" -TimeoutSec 5 -ErrorAction SilentlyContinue
-        Start-Sleep -Milliseconds $rand.Next(200,600)
+        # Checkout 70% - with verified cart
+        if ($rand.Next(100) -lt 70) {
+          $checkoutPayload = @{
+            userId=$userId
+            email="load-$($rand.Next(10000))@example.com"
+            address=@{streetAddress="1600 Amphitheatre Parkway"; city="Mountain View"; state="CA"; country="United States"; zipCode="94043"}
+            creditCard=@{creditCardNumber="4432-8015-6152-0454"; creditCardCvv=672; creditCardExpirationMonth=1; creditCardExpirationYear=2030}
+            userCurrency="USD"
+          } | ConvertTo-Json -Compress
 
-        # CORRECT checkout payload - 50% of loops
-        if($rand.Next(100) -lt 50){
-          $checkoutBody = @{
-            email = "load-$($rand.Next(10000))@test.com"
-            street_address = "1600 Amphitheatre Parkway"
-            zip_code = "94043"
-            city = "Mountain View"
-            state = "CA"
-            country = "United States"
-            cc_number = "4432-8015-6152-0454"
-            cc_cvv = "672"
-            cc_expiry_month = "1"
-            cc_expiry_year = "2030"
-          } | ConvertTo-Json
-          $null = Invoke-WebRequest -Uri "$BaseUrl/api/checkout" -Method Post -Body $checkoutBody -ContentType "application/json" -TimeoutSec 8 -ErrorAction SilentlyContinue
+          $null = Invoke-RestMethod -Uri "$BaseUrl/api/checkout?currencyCode=USD" -Method Post -Body $checkoutPayload -ContentType "application/json" -WebSession $session -TimeoutSec 10 -ErrorAction SilentlyContinue
         }
-      } catch { }
-      Start-Sleep -Milliseconds $rand.Next(300,900)
+      } catch {}
+      Start-Sleep -Milliseconds $rand.Next(600,1200)
     }
-  } -ArgumentList $BaseUrl, ($products | ConvertTo-Json -Depth 5)
+  } -ArgumentList $BaseUrl, ($knownProductIds | ConvertTo-Json -Compress)
 }
 
+Write-Host "Running $Users users - this will generate Orders/min!" -ForegroundColor Yellow
+Write-Host "Check Prometheus: sum by(status) (rate(app_frontend_requests_total{target=~'.*checkout.*'}[5m]))" -ForegroundColor DarkGray
 try {
   while ($true) {
-    $elapsed = (Get-Date) - $start
-    Write-Host "[$([int]$elapsed.TotalSeconds)s] $Users users running..." -ForegroundColor Yellow
-    if($DurationSec -gt 0 -and $elapsed.TotalSeconds -ge $DurationSec){break}
+    Write-Host "[$(Get-Date -Format HH:mm:ss)] $Users jobs running... shop.local should show orders" -ForegroundColor DarkGray
     Start-Sleep 5
   }
 } finally {
-  $jobs | Stop-Job -ErrorAction SilentlyContinue
-  $jobs | Remove-Job -Force -ErrorAction SilentlyContinue
-  Write-Host "Stopped" -ForegroundColor Green
+  Get-Job | Stop-Job -ErrorAction SilentlyContinue
+  Get-Job | Remove-Job -Force -ErrorAction SilentlyContinue
 }
