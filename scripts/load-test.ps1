@@ -1,18 +1,19 @@
 param(
   [string]$BaseUrl = "http://shop.local",
-  [int]$Users = 5,
-  [int]$DurationSec = 0 # 0 = infinite
+  [int]$Users = 3,
+  [int]$DurationSec = 0
 )
 
-Write-Host "Load test -> $BaseUrl with $Users users (Ctrl+C to stop)" -ForegroundColor Green
+Write-Host "Load test v2 -> $BaseUrl with $Users users (Ctrl+C to stop)" -ForegroundColor Green
 
 $products = @()
 try {
-  $products = (Invoke-RestMethod -Uri "$BaseUrl/api/products" -TimeoutSec 5).products
+  $resp = Invoke-RestMethod -Uri "$BaseUrl/api/products" -TimeoutSec 5
+  $products = $resp.products
+  if(-not $products){ $products = $resp } # fallback if array directly
   Write-Host "Found $($products.Count) products" -ForegroundColor Cyan
 } catch {
-  Write-Host "Failed to fetch products from $BaseUrl/api/products : $_" -ForegroundColor Red
-  Write-Host "Try: kubectl -n monitoring port-forward svc/frontend-proxy 8080:8080 and set -BaseUrl http://localhost:8080"
+  Write-Host "Failed $BaseUrl/api/products : $_" -ForegroundColor Red
   exit 1
 }
 
@@ -21,30 +22,38 @@ $jobs = 1..$Users | ForEach-Object {
   Start-Job -ScriptBlock {
     param($BaseUrl, $ProductsJson)
     $products = $ProductsJson | ConvertFrom-Json
+    $rand = [Random]::new()
 
     while ($true) {
       try {
-        # 1. Browse
         $null = Invoke-RestMethod -Uri "$BaseUrl/api/products" -TimeoutSec 3 -ErrorAction SilentlyContinue
-        Start-Sleep -Milliseconds (Get-Random -Min 100 -Max 400)
+        Start-Sleep -Milliseconds $rand.Next(100,400)
 
-        # 2. View cart / add to cart
+        # CORRECT cart payload
         $p = $products | Get-Random
-        $body = @{ productId = $p.id; quantity = (Get-Random -Min 1 -Max 3) } | ConvertTo-Json
-        $null = Invoke-WebRequest -Uri "$BaseUrl/api/cart" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 3 -ErrorAction SilentlyContinue
-        Start-Sleep -Milliseconds (Get-Random -Min 200 -Max 500)
+        $pid = if($p.id){$p.id}else{$p.productId}
+        $cartBody = @{ item = @{ productId = $pid; quantity = $rand.Next(1,3) } } | ConvertTo-Json
+        $null = Invoke-WebRequest -Uri "$BaseUrl/api/cart" -Method Post -Body $cartBody -ContentType "application/json" -TimeoutSec 5 -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds $rand.Next(200,600)
 
-        # 3. Checkout - 70% of iterations (this populates SLO + Business KPIs)
-        if ((Get-Random -Min 0 -Max 100) -lt 70) {
+        # CORRECT checkout payload - 50% of loops
+        if($rand.Next(100) -lt 50){
           $checkoutBody = @{
-            email = "load@test.com"
-            address = @{ street="123 Test"; city="Hyd"; country="IN"; zip="500001" }
-            creditCard = @{ number="4111111111111111"; expiryMonth=12; expiryYear=2030; cvv="123" }
-          } | ConvertTo-Json -Depth 5
-          $null = Invoke-WebRequest -Uri "$BaseUrl/api/checkout" -Method Post -Body $checkoutBody -ContentType "application/json" -TimeoutSec 5 -ErrorAction SilentlyContinue
+            email = "load-$($rand.Next(10000))@test.com"
+            street_address = "1600 Amphitheatre Parkway"
+            zip_code = "94043"
+            city = "Mountain View"
+            state = "CA"
+            country = "United States"
+            cc_number = "4432-8015-6152-0454"
+            cc_cvv = "672"
+            cc_expiry_month = "1"
+            cc_expiry_year = "2030"
+          } | ConvertTo-Json
+          $null = Invoke-WebRequest -Uri "$BaseUrl/api/checkout" -Method Post -Body $checkoutBody -ContentType "application/json" -TimeoutSec 8 -ErrorAction SilentlyContinue
         }
       } catch { }
-      Start-Sleep -Milliseconds (Get-Random -Min 200 -Max 800)
+      Start-Sleep -Milliseconds $rand.Next(300,900)
     }
   } -ArgumentList $BaseUrl, ($products | ConvertTo-Json -Depth 5)
 }
@@ -52,13 +61,12 @@ $jobs = 1..$Users | ForEach-Object {
 try {
   while ($true) {
     $elapsed = (Get-Date) - $start
-    $rps = [math]::Round((Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction SilentlyContinue).CounterSamples.CookedValue,1)
-    Write-Host "[$([int]$elapsed.TotalSeconds)s] Running $Users users... Jobs: $($jobs.State -join ',')" -ForegroundColor Yellow
-    if ($DurationSec -gt 0 -and $elapsed.TotalSeconds -ge $DurationSec) { break }
+    Write-Host "[$([int]$elapsed.TotalSeconds)s] $Users users running..." -ForegroundColor Yellow
+    if($DurationSec -gt 0 -and $elapsed.TotalSeconds -ge $DurationSec){break}
     Start-Sleep 5
   }
 } finally {
   $jobs | Stop-Job -ErrorAction SilentlyContinue
   $jobs | Remove-Job -Force -ErrorAction SilentlyContinue
-  Write-Host "Load test stopped" -ForegroundColor Green
+  Write-Host "Stopped" -ForegroundColor Green
 }
