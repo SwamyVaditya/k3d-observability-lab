@@ -458,17 +458,41 @@ Full: [docs/architecture.md](./docs/architecture.md)
 
 ## Evidence - v1.0 Screenshots
 
-### Argo CD - 8 apps Synced/Healthy (App-of-Apps self-heal)
+### 01 - Argo CD - 8 apps Synced/Healthy (App-of-Apps self-heal)
 ![Argo CD Synced Healthy](docs/images/v1.0/01-argocd-apps-synced-healthy.png)
+*Root App-of-Apps discovers 8 child apps: otel-demo, prometheus, dashboards, alloy, loki, tempo, minio, hardening. Automated sync + prune + selfHeal. Proves Git is source of truth.*
 
-### Grafana - Master SRE Dashboard (burn-rate, RED, business)
+### 02 - Grafana - Master SRE Dashboard (00 - Master SRE - One Screen)
 ![Master SRE](docs/images/v1.0/02-grafana-sre-master-dashboard.png)
+*Single pane: Traffic req/s, Error % 0%, p95 latency, Up pods 21, SLO Success % 100%, True Burn Rate 0x, **Business - Orders/min 101/min** (source of truth for business throughput), Current Errors checkout 500/s 0. This is the SRE on-call screen.*
 
-### Grafana - Logs/Traces correlation via Alloy
-![Logs Traces](docs/images/v1.0/05-grafana-logs-traces.png)
+### 03 - Grafana - Infra Cluster (CPU/Mem/Disk, kubelet, API)
+![Infra Cluster](docs/images/v1.0/03-grafana-infra-cluster.png)
+*Node CPU/Mem/Disk, kubelet, API server health. Shows k3d 1 server + 2 agents handling 101 orders/min with low resource usage — lab is lightweight by design.*
 
-### Alertmanager → Slack with runbook_url
-![Slack Alert](docs/images/v1.0/06-slack-alertmanager.png)
+### 04 - Grafana - App RED (Rate / Errors / Duration)
+![App RED](docs/images/v1.0/04-grafana-app-red.png)
+*RED for frontend/checkout/cart/kafka. Rate 3-4 rps, Errors 0% green, Duration p95 ~19.0ms. Frontend `app_frontend_requests_total{target=~".*checkout.*"}` drives SLOs.*
+
+### 05 - Grafana - App Business KPIs (Checkout Rate, Cart gRPC)
+![App Business KPIs](docs/images/v1.0/05-App-Business-KPIs.png)
+*Dashboard: 04 - App Business KPIs. Panels: `Checkout Rate (Place Order) - 500 indicates kafka/queue failure` showing `target=~".*checkout.*"`, `Cart Operations`, `Cart Service gRPC - AddItem / GetCart`, and `Checkout Failures vs Success (honest regex)` with `status=~"5.."` vs `!~"5.."`. 
+
+### 06 - Grafana - Logs/Traces Correlation via Alloy
+![Logs Traces](docs/images/v1.0/06-grafana-logs-traces.png)
+*Alloy OTLP receiver (4317) + loki.source.kubernetes → Loki + Tempo. Exemplars linking metrics → traces → logs. Same traceId in Grafana Explore.*
+
+### 07 - Grafana - SLOs - 4 Golden Signals + Burn Rate
+![SLOs Burn Rate](docs/images/v1.0/07-grafana-SLOs-4-golden-signals-burn-rate.png)
+*SLO: 99.5% availability, 0.5% budget. `burn_rate = error_rate / 0.005`. Panels: success_percent:5m 100%, error_rate:5m 0%, burn_rate:5m 0x, burn_rate:1h decay 27.7→0. Multi-window alert 2x warning, 10x critical.*
+
+### 08 - Prometheus - app_frontend_requests_total (Checkout Proof)
+![Prometheus Checkout](docs/images/v1.0/08-Prometheus-app-frontend-requests-total.png)
+*PromQL: `sum by(status) (rate(app_frontend_requests_total{target=~".*checkout.*"}))` → `200=1.67, 500=0`. Direct proof load-test v6 uses Chrome-accurate payload: `userId + address + creditCard + currencyCode=USD`.*
+
+### 09 - Alertmanager → Slack with runbook_url
+![Slack Alert](docs/images/v1.0/09-slack-alertmanager.png)
+*Alertmanager routing `CheckoutSLOBurning` / `CheckoutSLOFastBurn` → Slack #alerts-sre with `runbook_url: docs/runbooks/checkout-slo-burning.md`. Slack shows RESOLVED after fix — MTTR closed loop.*
 
 ---
 

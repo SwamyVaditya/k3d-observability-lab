@@ -42,9 +42,24 @@ data:
           "gridPos": {"h":8,"w":12,"x":12,"y":8},
           "datasource": {"type":"prometheus","uid":"prometheus"},
           "targets": [
-            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=\"500\"}[5m]))", "legendFormat": "500 failures"},
-            {"expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=\"200\"}[5m]))", "legendFormat": "200 success"}
-          ]
+            {
+              "expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=~\"5..\"}[5m]))",
+              "legendFormat": "5xx failures"
+            },
+            {
+              "expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status!~\"5..\"}[5m]))",
+              "legendFormat": "success (non-5xx)"
+            },
+            {
+              "expr": "sum(rate(app_frontend_requests_total{target=~\".*checkout.*\",status=~\"2..\"}[5m]))",
+              "legendFormat": "200 success (strict)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {"custom": {"fillOpacity": 10, "lineWidth": 2}},
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "5xx failures"}, "properties": [{"id": "custom.lineStyle", "value": {"fill": "solid"}}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]}
+            ]
+          }
         }
-      ]
-    }
+          
