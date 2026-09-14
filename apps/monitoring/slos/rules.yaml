@@ -12,13 +12,23 @@ spec:
       interval: 30s
       rules:
         - record: slo:checkout:error_rate:5m
-          expr: sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[5m])) / clamp_min(sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m])),1) or vector(0)
-        
+          expr: |
+            clamp_min(
+              sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[5m]))
+              /
+              sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m])),
+              0
+            )
         - record: slo:checkout:error_rate:1h
-          expr: sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[1h])) / clamp_min(sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[1h])),1) or vector(0)
-        
+          expr: |
+            clamp_min(
+              sum(rate(app_frontend_requests_total{target=~".*checkout.*",status=~"5.."}[1h]))
+              /
+              sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[1h])),
+              0
+            )
         - record: slo:checkout:traffic:5m
-          expr: sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m])) or vector(0)
+          expr: sum(rate(app_frontend_requests_total{target=~".*checkout.*"}[5m]))
         
         - record: slo:checkout:slo_target
           expr: vector(0.995)

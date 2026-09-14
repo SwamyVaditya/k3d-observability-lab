@@ -25,7 +25,7 @@ docs/runbooks/
 
 ### 1. Resource Limits
 
-Resource requests/limits are declaratively managed via Helm values in `apps/monitoring/*-values.yaml` (otel-demo, loki, alloy, tempo, minio, prometheus-grafana). All values are GitOps-synced by Argo CD. The `platform-hardening` app owns only PDBs and Kyverno policies to avoid SharedResourceWarning.
+Resource requests/limits are declaratively managed via Helm values in `apps/monitoring/*-values.yaml` (otel-demo, loki, alloy, tempo, minio, prometheus-grafana). All values are GitOps-synced by Argo CD. The `platform-hardening` app owns the local PDB resources to avoid Argo CD SharedResourceWarning. Kyverno/OPA enforcement is documented as the production EKS enforcement pattern and is intentionally not deployed in this lightweight k3d lab — resource limits and PDBs are GitOps-synced via Helm values, enforcement would be via policy controller in production.
 
 Verified via:
 ```powershell

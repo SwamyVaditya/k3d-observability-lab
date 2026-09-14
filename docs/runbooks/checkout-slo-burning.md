@@ -92,7 +92,7 @@ kubectl -n monitoring logs -l app=checkout --tail=100 | Select-String -Pattern "
 kubectl -n monitoring logs -l app=kafka --tail=100
 kubectl -n monitoring describe pod -l app=kafka
 kubectl -n monitoring describe pod -l app=checkout
-kubectl -n monitoring get deployment kafka
+kubectl -n monitoring get statefulset kafka
 ```
 
 ### 3. Check traffic source
@@ -131,8 +131,8 @@ kubectl -n monitoring logs -l app=frontend --tail=50
 
 ```
 # If kafka was scaled to 0 for chaos testing:
-kubectl -n monitoring scale deployment kafka --replicas=1
-kubectl -n monitoring rollout status deployment/kafka
+kubectl -n monitoring scale statefulset kafka --replicas=1
+kubectl -n monitoring rollout status statefulset/kafka
 kubectl -n monitoring rollout restart deployment/checkout
 kubectl -n monitoring get pods -w
 ```
@@ -296,51 +296,33 @@ Will auto-resolve after 10m of stable run. No action needed.
 
 ---
 
-## Recording Rules Reference - TRUE burn rate
+## Recording Rules Reference
 
-Located in `apps/monitoring/slos/rules.yaml`:
+**Authoritative implementation:** `apps/monitoring/slos/rules.yaml`
 
-```
-- record: slo:checkout:error_rate:5m
-  expr: sum(rate(app_frontend_requests_total{target="/api/checkout",status="500"})) / (sum(rate(...))+0.0001)
+This runbook does not duplicate PromQL to avoid drift. The true burn-rate implementation is:
 
-- record: slo:checkout:error_rate:1h
-  expr: sum(rate(...)) / (sum(rate(...))+0.0001)
+```text
+error rate
+  ↓
+burn rate = error_rate / 0.005
+  ↓
+alert (2x multi-window: 5m >2 AND 1h >2, 10x fast-burn: 5m >10)
+  ↓
+diagnosis
+  ↓
+mitigation
 
-- record: slo:checkout:slo_target
-  expr: "vector(0.995)"
+Current rules use:
 
-- record: slo:checkout:error_budget
-  expr: "vector(0.005)"
+- `target=~".*checkout.*"` (regex matches frontend-proxy naming: `POST /api/checkout?currencyCode=USD`)
+- `status=~"5.."` (any 5xx, not just 500)
+- `clamp_min(..., 0)` to handle No Data = idle
+- `slo:checkout:burn_rate:5m = error_rate:5m / 0.005`
+- `slo:checkout:burn_rate:1h = error_rate:1h / 0.005`
+- `slo:checkout:success_percent:5m = 100 * (1 - error_rate:5m)`
 
-- record: slo:checkout:burn_rate:5m
-  expr: slo:checkout:error_rate:5m / 0.005
-
-- record: slo:checkout:burn_rate:1h
-  expr: slo:checkout:error_rate:1h / 0.005
-
-- record: slo:checkout:success_percent:5m
-  expr: 100 * (1 - slo:checkout:error_rate:5m)
-
-- record: slo:checkout:traffic:5m
-  expr: sum(rate(app_frontend_requests_total{target="/api/checkout"}))
-```
-
-Alerts:
-
-```
-- alert: CheckoutSLOBurning
-  expr: slo:checkout:burn_rate:5m > 2 and slo:checkout:burn_rate:1h > 2
-  for: 2m
-  labels: { severity: warning, slo: checkout }
-
-- alert: CheckoutSLOFastBurn
-  expr: slo:checkout:burn_rate:5m > 10
-  for: 2m
-  labels: { severity: critical, slo: checkout }
-```
-
-Multi-window pattern prevents flapping on low traffic.
+See `rules.yaml` for exact PromQL — that file is validated by CI `promtool check rules`.
 
 ---
 

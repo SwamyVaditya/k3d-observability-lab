@@ -71,7 +71,7 @@ flowchart LR
 k3d-observability-lab/
 ├── .github/
 │   └── workflows/
-│       └── ci.yaml                     # Shift-left CI: terraform fmt, helm lint, kubeval, kyverno check, Argo diff
+│       └── ci.yaml                     # Shift-left CI: Terraform fmt/validate, Helm render + kubeconform, probes/resources checks, PrometheusRule validation, Argo topology + secret hygiene
 ├── apps/
 │   ├── monitoring/                     # Argo CD child apps - discovered by root-app.yaml App-of-Apps
 │   │   ├── dashboards/                 # Grafana dashboards as ConfigMaps (synced via dashboards-app)
@@ -162,7 +162,7 @@ Located in `apps/platform/hardening/`:
 
 * **Resource Limits:** Declaratively defined in `apps/monitoring/otel-demo-values.yaml` (e.g., cart 50m/64Mi → 200m/160Mi) and GitOps-synced. Verified via `kubectl -n monitoring get deploy -o jsonpath`. Kyverno enforces in prod.
 * **PodDisruptionBudgets (PDBs):** Configured `minAvailable: 1` for critical components (`cart`, `checkout`, `frontend`, `kafka`) to safely handle voluntary cluster disruptions.
-* **Health Probes:** Upstream health probes are retained for supported observability components (Prometheus, Loki, Tempo, Alloy, MinIO) and validated through rendered-manifest CI checks (`helm template | grep livenessProbe`). OTel Demo microservices are intentionally not modified with custom probes - upstream image does not expose /health probes, ownership stays upstream.
+* **Health Probes:** Upstream health probes are retained for supported observability workloads and validated through rendered-manifest CI checks. OTel Demo application microservices are intentionally not modified with custom Kubernetes probes.
 * **Runbooks:** Documented incident responses (`docs/runbooks/checkout-slo-burning.md`) for structured failure recovery.
 
 #### 4. Alerting & Incident Response
@@ -175,7 +175,7 @@ Located in `apps/platform/hardening/`:
 ### Technology Stack
 
 * **Orchestration:** Kubernetes via **K3d** (1 Server, 2 Agents, custom load balancer port mappings for HTTP/HTTPS entrypoints).
-* **Infrastructure as Code (IaC):** **Terraform** (`null_resource`, `helm`, and `kubectl` providers).
+* **Infrastructure as Code (IaC):** **Terraform** (`null_resource` + Helm provider). Local state is intentional for k3d lab — production EKS uses S3 backend. No `kubectl` provider — Argo CD owns manifests.
 * **Continuous Delivery (CD):** **Argo CD** utilizing the **App-of-Apps** pattern.
 * **Observability & Routing Components:**
 * **Prometheus:** Metrics collection, storage, and alerting rule evaluation.
