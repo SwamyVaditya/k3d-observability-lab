@@ -19,7 +19,8 @@ data:
           "title":"1. Traffic - req/s (now)",
           "gridPos":{"h":4,"w":6,"x":0,"y":0},
           "datasource":{"type":"prometheus","uid":"prometheus"},
-          "targets":[{"expr":"sum(rate(app_frontend_requests_total[5m]))"}]
+          "targets":[{"expr":"sum(rate(app_frontend_requests_total[5m])) or vector(0)","legendFormat":"all traffic"}],
+          "fieldConfig":{"defaults":{"unit":"reqps","noValue":"No traffic"}}
         },
         {
           "type":"stat",
