@@ -476,7 +476,7 @@ Full: [docs/architecture.md](./docs/architecture.md)
 
 ### 05 - Grafana - App Business KPIs (Checkout Rate, Cart gRPC)
 ![App Business KPIs](docs/images/v1.0/05-App-Business-KPIs.png)
-*Dashboard: 04 - App Business KPIs. Panels: `Checkout Rate (Place Order) - 500 indicates kafka/queue failure` showing `target=~".*checkout.*"`, `Cart Operations`, `Cart Service gRPC - AddItem / GetCart`, and `Checkout Failures vs Success (honest regex)` with `status=~"5.."` vs `!~"5.."`. 
+*Dashboard: 04 - App Business KPIs. Panels: `Checkout Rate` (`target=~".*checkout.*"`), `Cart Operations`, `Cart Service gRPC - AddItem / GetCart`, and `Checkout Failures vs Success (honest regex)` with `status=~"5.."` (5xx failures) vs `status=~"2.."` (success). Captures kafka/payment failure mode — catches 502/503, not just 500. Verified with `.\scripts\load-test.ps1 -Users 3`.*
 
 ### 06 - Grafana - Logs/Traces Correlation via Alloy
 ![Logs Traces](docs/images/v1.0/06-grafana-logs-traces.png)
@@ -493,6 +493,22 @@ Full: [docs/architecture.md](./docs/architecture.md)
 ### 09 - Alertmanager → Slack with runbook_url
 ![Slack Alert](docs/images/v1.0/09-slack-alertmanager.png)
 *Alertmanager routing `CheckoutSLOBurning` / `CheckoutSLOFastBurn` → Slack #alerts-sre with `runbook_url: docs/runbooks/checkout-slo-burning.md`. Slack shows RESOLVED after fix — MTTR closed loop.*
+
+---
+
+## How to Verify
+
+### Verify SLOs & Business KPIs (reproduces screenshots)
+
+Reproduces the v1.0 evidence (0% error, 100% success, 0x burn, ~101 orders/min):
+
+```powershell
+.\scripts\load-test.ps1 -Users 3
+```
+# -> Grafana: 00 - Master SRE - One Screen: Traffic ~3-4 rps, Error 0%, Success 100%, Burn 0x, Orders ~101/min
+# -> 04 - App Business KPIs: Checkout Rate 5xx=0, 2xx=1.51 rps, Cart gRPC AddItem/GetCart ~3.75 rps
+
+**Check:** grafana.local → Dashboards → SRE folder → 00 - Master SRE - One Screen and 04 - App Business KPIs
 
 ---
 
