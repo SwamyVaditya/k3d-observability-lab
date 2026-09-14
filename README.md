@@ -505,8 +505,8 @@ Reproduces the v1.0 evidence (0% error, 100% success, 0x burn, ~101 orders/min):
 ```powershell
 .\scripts\load-test.ps1 -Users 3
 ```
-# -> Grafana: 00 - Master SRE - One Screen: Traffic ~3-4 rps, Error 0%, Success 100%, Burn 0x, Orders ~101/min
-# -> 04 - App Business KPIs: Checkout Rate 5xx=0, 2xx=1.51 rps, Cart gRPC AddItem/GetCart ~3.75 rps
+#### -> Grafana: 00 - Master SRE - One Screen: Traffic ~3-4 rps, Error 0%, Success 100%, Burn 0x, Orders ~101/min
+#### -> 04 - App Business KPIs: Checkout Rate 5xx=0, 2xx=1.51 rps, Cart gRPC AddItem/GetCart ~3.75 rps
 
 **Check:** grafana.local → Dashboards → SRE folder → 00 - Master SRE - One Screen and 04 - App Business KPIs
 
